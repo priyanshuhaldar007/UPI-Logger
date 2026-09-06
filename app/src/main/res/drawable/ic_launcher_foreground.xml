@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Viewfinder capture brackets (within safe zone 21..87) -->
+    <!-- Top-Left bracket -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M32,27 L25,27 A3,3 0 0 0 22,30 L22,37" />
+
+    <!-- Top-Right bracket -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M76,27 L83,27 A3,3 0 0 1 86,30 L86,37" />
+
+    <!-- Bottom-Left bracket -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M22,71 L22,78 A3,3 0 0 0 25,81 L32,81" />
+
+    <!-- Bottom-Right bracket -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M86,71 L86,78 A3,3 0 0 1 83,81 L76,81" />
+
+    <!-- Central Receipt / Note Card -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M34,26 L74,26 A4,4 0 0 1 78,30 L78,78 A4,4 0 0 1 74,82 L34,82 A4,4 0 0 1 30,78 L30,30 A4,4 0 0 1 34,26 Z" />
+
+    <!-- Note header accent line -->
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M30,30 L78,30 L78,38 L30,38 Z" />
+
+    <!-- Rupee symbol ₹ on card -->
+    <!-- Top bar 1 -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M43,44 L65,44 A1.5,1.5 0 0 1 65,47 L43,47 A1.5,1.5 0 0 1 43,44 Z" />
+    <!-- Top bar 2 -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M43,49 L62,49 A1.5,1.5 0 0 1 62,52 L43,52 A1.5,1.5 0 0 1 43,49 Z" />
+    <!-- Stem and upper loop of Rupee -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M48,44 L51,44 L51,60 C55,60 58,57 58,53 C58,49 55,48 52,48 L52,45 C57,45 61,48 61,53 C61,58 57,63 51,63 L48,63 Z" />
+    <!-- Diagonal leg of Rupee -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M50,60 L64,74 L61,76 L48,62 Z" />
+
+    <!-- Note / Remark text lines at bottom -->
+    <path
+        android:fillColor="#0EA5E9"
+        android:pathData="M36,68 L44,68 A1.5,1.5 0 0 1 44,71 L36,71 A1.5,1.5 0 0 1 36,68 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M36,74 L44,74 A1.5,1.5 0 0 1 44,77 L36,77 A1.5,1.5 0 0 1 36,74 Z" />
+
+    <!-- Small active capture pulse badge on bottom right -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M72,70 A5,5 0 1 1 72,80 A5,5 0 1 1 72,70 Z" />
+</vector>

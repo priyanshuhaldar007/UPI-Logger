@@ -1,0 +1,6 @@
+{
+  "name": "UPI Note Logger",
+  "description": "Local-only personal utility to capture, OCR, parse, and export UPI transaction notes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
