@@ -60,10 +60,19 @@ object CsvExporter {
             val fileName = "upi_notes_$timestamp.csv"
 
             val csvContent = buildString {
+                // Prepend UTF-8 BOM so Excel and other spreadsheet viewers render ₹ and non-ASCII correctly
+                append("\uFEFF")
+
                 // Header
-                appendLine("Date,Amount,Payee,VPA,Reference,Payment Method,Note,Super.Money Transaction ID")
+                appendLine("Date,Amount,Payee,VPA,Reference,Payment Method,Note,Super.Money Transaction ID,Merge Status")
 
                 for (entry in filteredEntries) {
+                    val mergeStatus = when (entry.sourceScreenType) {
+                        "MERGED" -> "Merged"
+                        "SCREEN_A" -> "Screen A Only (missing Note)"
+                        "SCREEN_B" -> "Screen B Only (missing Amount)"
+                        else -> "Unknown"
+                    }
                     append(escapeCsv(entry.date)).append(",")
                     append(escapeCsv(entry.amount)).append(",")
                     append(escapeCsv(entry.payee)).append(",")
@@ -71,7 +80,8 @@ object CsvExporter {
                     append(escapeCsv(entry.referenceNumber)).append(",")
                     append(escapeCsv(entry.paymentMethod)).append(",")
                     append(escapeCsv(entry.note)).append(",")
-                    append(escapeCsv(entry.superMoneyTransactionId))
+                    append(escapeCsv(entry.superMoneyTransactionId)).append(",")
+                    append(escapeCsv(mergeStatus))
                     appendLine()
                 }
             }
@@ -105,7 +115,7 @@ object CsvExporter {
                     val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
                     if (uri != null) {
                         resolver.openOutputStream(uri)?.use { outputStream ->
-                            outputStream.write(csvContent.toByteArray())
+                            outputStream.write(csvContent.toByteArray(Charsets.UTF_8))
                         }
                         savedPublicPath = "Downloads/UpiNoteLogger/$fileName"
                     }
@@ -151,7 +161,10 @@ object CsvExporter {
     }
 
     private fun escapeCsv(value: String): String {
-        val clean = value.replace("\r", " ").replace("\n", " ").trim()
+        var clean = value.replace("\r", " ").replace("\n", " ").trim()
+        if (clean.startsWith("=") || clean.startsWith("+") || clean.startsWith("-") || clean.startsWith("@")) {
+            clean = "'$clean"
+        }
         return if (clean.contains(",") || clean.contains("\"") || clean.contains(";")) {
             "\"" + clean.replace("\"", "\"\"") + "\""
         } else {

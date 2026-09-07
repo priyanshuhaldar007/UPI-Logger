@@ -33,11 +33,12 @@ class TransactionRepository(
      */
     suspend fun processAndStoreCapture(
         rawOcrText: String,
-        screenshotFilePath: String
+        screenshotFilePath: String,
+        expectedScreenType: String = "SCREEN_A"
     ): Pair<TransactionEntry, Boolean> = withContext(Dispatchers.IO) {
         val parsed = FieldParser.parse(rawOcrText)
         val ref = parsed.referenceNumber.trim()
-        val isScreenB = parsed.detectedScreenType == ParsedTransaction.ScreenType.SCREEN_B
+        val isScreenB = expectedScreenType == "SCREEN_B"
 
         // Check if there is an existing entry with the same reference number
         if (ref.isNotEmpty()) {
@@ -86,7 +87,7 @@ class TransactionRepository(
             screenshotBPath = if (isScreenB) screenshotFilePath else null,
             isMerged = false,
             isReviewed = false,
-            sourceScreenType = if (isScreenB) "SCREEN_B" else "SCREEN_A",
+            sourceScreenType = expectedScreenType,
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )

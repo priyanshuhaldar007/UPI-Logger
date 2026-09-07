@@ -95,8 +95,30 @@ object FieldParser {
 
         var isScreenBIndicator = false
         var isScreenAIndicator = false
+        var stopAmountMatching = false
 
-        // 1. Pass: Scan lines with exact label markers
+        // 1. Pass: Top-of-page payee extraction for Screen A (runs BEFORE "Paid to"-based backward search)
+        for (candidate in lines) {
+            val cand = candidate.trim()
+            if (cand.isNotBlank() &&
+                cand.length > 1 &&
+                cand.length in 2..40 &&
+                !cand.contains("@") &&
+                !cand.contains("₹") &&
+                !cand.any { it.isDigit() } &&
+                !AMOUNT_EXACT_REGEX.matcher(cand).find() &&
+                !AMOUNT_FALLBACK_REGEX.matcher(cand).find() &&
+                !DATE_SCREEN_A_REGEX.matcher(cand).find() &&
+                !DATE_SCREEN_B_REGEX.matcher(cand).find() &&
+                !isKnownLabel(cand) &&
+                !cand.equals("Help", ignoreCase = true)
+            ) {
+                parsedPayee = cand
+                break
+            }
+        }
+
+        // Scan lines with exact label markers
         for (i in lines.indices) {
             val line = lines[i]
             val lower = line.lowercase()
@@ -242,10 +264,14 @@ object FieldParser {
             }
 
             // --- AMOUNT EXTRACTION ---
-            if (parsedAmount.isEmpty()) {
-                val amountMatcher = AMOUNT_EXACT_REGEX.matcher(line)
-                if (amountMatcher.find()) {
-                    parsedAmount = "₹" + (amountMatcher.group(1) ?: "")
+            if (!stopAmountMatching) {
+                if (lower.contains("past transactions")) {
+                    stopAmountMatching = true
+                } else if (parsedAmount.isEmpty()) {
+                    val amountMatcher = AMOUNT_EXACT_REGEX.matcher(line)
+                    if (amountMatcher.find()) {
+                        parsedAmount = "₹" + (amountMatcher.group(1) ?: "")
+                    }
                 }
             }
 
@@ -266,7 +292,7 @@ object FieldParser {
         // --- 2. Pass: Fallback heuristics for uncaptured fields ---
 
         // Fallback for Amount
-        if (parsedAmount.isEmpty()) {
+        if (!stopAmountMatching && parsedAmount.isEmpty()) {
             val fallbackAmountMatcher = AMOUNT_FALLBACK_REGEX.matcher(rawText)
             if (fallbackAmountMatcher.find()) {
                 parsedAmount = "₹" + (fallbackAmountMatcher.group(1) ?: "")
@@ -502,6 +528,8 @@ object FieldParser {
     private fun isKnownLabel(text: String): Boolean {
         val lower = text.lowercase().trim()
         return lower.startsWith("paid to") ||
+                lower.contains("payment successful") ||
+                lower.contains("paid successfully") ||
                 lower.startsWith("upi reference") ||
                 lower.startsWith("upi transaction") ||
                 lower.startsWith("payment method") ||

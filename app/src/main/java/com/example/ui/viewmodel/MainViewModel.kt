@@ -240,13 +240,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val rawA = OcrProcessor.extractText(bmpA).ifBlank {
                     "Paid to: Priya Sharma\n₹48\nAxis CC XX87\nUPI Reference ID: $ref\nSeptember 5 at 9:38 PM"
                 }
-                repository.processAndStoreCapture(rawA, fileA.absolutePath)
+                repository.processAndStoreCapture(rawA, fileA.absolutePath, "SCREEN_A")
 
                 // Process Screen B (Auto-matches ref)
                 val rawB = OcrProcessor.extractText(bmpB).ifBlank {
                     "Date and time: 5 September 2026 • 09:38PM\nPaid to: priyasharma@oksbi\nUPI Transaction Id: $ref\nSuper.Money transaction ID: SMTX99881122\nPayment Method: Axis CC XX87\nNote\nLunch with team at cafe"
                 }
-                repository.processAndStoreCapture(rawB, fileB.absolutePath)
+                repository.processAndStoreCapture(rawB, fileB.absolutePath, "SCREEN_B")
 
                 refreshStorageStats()
                 _snackbarMessage.value = "Sample Screen A + B pair created & auto-merged!"

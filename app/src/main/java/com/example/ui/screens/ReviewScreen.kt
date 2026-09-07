@@ -188,6 +188,8 @@ fun ReviewScreen(
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = PolishTextPrimary,
+                    unfocusedTextColor = PolishTextPrimary,
                     focusedContainerColor = PolishSurface,
                     unfocusedContainerColor = PolishSurface,
                     focusedBorderColor = PolishPrimary,
@@ -579,6 +581,10 @@ fun TransactionCard(
                     .fillMaxWidth()
                     .testTag("note_input_${entry.id}"),
                 shape = RoundedCornerShape(10.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = PolishTextPrimary,
+                    unfocusedTextColor = PolishTextPrimary
+                ),
                 minLines = 2
             )
 
@@ -597,6 +603,10 @@ fun TransactionCard(
                         .weight(1f)
                         .testTag("amount_input_${entry.id}"),
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PolishTextPrimary,
+                        unfocusedTextColor = PolishTextPrimary
+                    ),
                     singleLine = true
                 )
 
@@ -608,6 +618,10 @@ fun TransactionCard(
                         .weight(1.4f)
                         .testTag("date_input_${entry.id}"),
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PolishTextPrimary,
+                        unfocusedTextColor = PolishTextPrimary
+                    ),
                     singleLine = true
                 )
             }
@@ -627,6 +641,10 @@ fun TransactionCard(
                         .weight(1f)
                         .testTag("payee_input_${entry.id}"),
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PolishTextPrimary,
+                        unfocusedTextColor = PolishTextPrimary
+                    ),
                     singleLine = true
                 )
 
@@ -638,6 +656,10 @@ fun TransactionCard(
                         .weight(1f)
                         .testTag("vpa_input_${entry.id}"),
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PolishTextPrimary,
+                        unfocusedTextColor = PolishTextPrimary
+                    ),
                     singleLine = true
                 )
             }
@@ -657,6 +679,10 @@ fun TransactionCard(
                         .weight(1.2f)
                         .testTag("ref_input_${entry.id}"),
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PolishTextPrimary,
+                        unfocusedTextColor = PolishTextPrimary
+                    ),
                     singleLine = true
                 )
 
@@ -668,6 +694,10 @@ fun TransactionCard(
                         .weight(1f)
                         .testTag("payment_method_input_${entry.id}"),
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PolishTextPrimary,
+                        unfocusedTextColor = PolishTextPrimary
+                    ),
                     singleLine = true
                 )
             }
@@ -680,6 +710,10 @@ fun TransactionCard(
                     label = { Text("Super.Money Txn ID") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = PolishTextPrimary,
+                        unfocusedTextColor = PolishTextPrimary
+                    ),
                     singleLine = true
                 )
             }

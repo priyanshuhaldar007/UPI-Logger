@@ -12,6 +12,7 @@ import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -291,40 +292,56 @@ class CaptureOverlayService : Service() {
             elevation = 16f
         }
 
-        // Circular capture icon
-        val captureButton = FrameLayout(this).apply {
+        // Two circular capture buttons labeled "A" and "B" placed side by side
+        val density = resources.displayMetrics.density
+        val btnSize = (38 * density).toInt()
+
+        val buttonA = FrameLayout(this).apply {
             val circleDrawable = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.parseColor("#0061A4")) // Professional Polish Brand Blue
             }
             background = circleDrawable
-            val size = (48 * resources.displayMetrics.density).toInt()
-            layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                rightMargin = (8 * resources.displayMetrics.density).toInt()
+            layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                rightMargin = (6 * density).toInt()
             }
 
-            val icon = ImageView(this@CaptureOverlayService).apply {
-                setImageResource(android.R.drawable.ic_menu_camera)
-                setColorFilter(Color.WHITE)
-                scaleType = ImageView.ScaleType.CENTER_INSIDE
-                val iconSize = (28 * resources.displayMetrics.density).toInt()
-                layoutParams = FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER)
+            val textA = TextView(this@CaptureOverlayService).apply {
+                text = "A"
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
             }
-            addView(icon)
+            addView(textA)
         }
 
-        // Label
-        val label = TextView(this).apply {
-            text = "LOG NOTE"
-            setTextColor(Color.WHITE)
-            textSize = 12f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                rightMargin = (12 * resources.displayMetrics.density).toInt()
+        val buttonB = FrameLayout(this).apply {
+            val circleDrawable = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#0061A4")) // Professional Polish Brand Blue
             }
+            background = circleDrawable
+            layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
+                rightMargin = (10 * density).toInt()
+            }
+
+            val textB = TextView(this@CaptureOverlayService).apply {
+                text = "B"
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            }
+            addView(textB)
         }
 
         // Small Stop Button (X)
@@ -354,16 +371,19 @@ class CaptureOverlayService : Service() {
             }
         }
 
-        container.addView(captureButton)
-        container.addView(label)
+        container.addView(buttonA)
+        container.addView(buttonB)
         container.addView(stopButton)
 
-        // Drag & Click handler for the container and capture button
+        // Drag & Click handler for the container and capture buttons
         var initialX = 0
         var initialY = 0
         var initialTouchX = 0f
         var initialTouchY = 0f
         var isDragging = false
+
+        val hitRectA = Rect()
+        val hitRectB = Rect()
 
         container.setOnTouchListener { _, event ->
             when (event.action) {
@@ -388,8 +408,16 @@ class CaptureOverlayService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!isDragging) {
-                        // Single tap registered: trigger capture!
-                        triggerCapture()
+                        buttonA.getHitRect(hitRectA)
+                        buttonB.getHitRect(hitRectB)
+                        val touchX = event.x.toInt()
+                        val touchY = event.y.toInt()
+
+                        if (hitRectA.contains(touchX, touchY)) {
+                            triggerCapture("SCREEN_A")
+                        } else if (hitRectB.contains(touchX, touchY)) {
+                            triggerCapture("SCREEN_B")
+                        }
                     }
                     true
                 }
@@ -405,7 +433,7 @@ class CaptureOverlayService : Service() {
      * Executes an on-demand single-frame screenshot, triggers OCR & parsing,
      * and updates Room.
      */
-    private fun triggerCapture() {
+    private fun triggerCapture(expectedScreenType: String) {
         if (isCapturing) return
         isCapturing = true
 
@@ -444,7 +472,8 @@ class CaptureOverlayService : Service() {
                 val repo = (application as UpiNoteLoggerApplication).repository
                 val (entry, isAutoMerged) = repo.processAndStoreCapture(
                     rawOcrText = rawText,
-                    screenshotFilePath = imageFile.absolutePath
+                    screenshotFilePath = imageFile.absolutePath,
+                    expectedScreenType = expectedScreenType
                 )
 
                 // Feedback message

@@ -174,5 +174,64 @@ class FieldParserTest {
         assertEquals("Dinner with family", parsed.note)
         assertEquals("424881920384", parsed.referenceNumber)
     }
+
+    @Test
+    fun testTopPayeeExtractionExcludesAvatarInitialAndHelp() {
+        val ocrText = """
+            Help
+            R
+            Rohan Sharma
+            ₹150
+            Paid to: rohan@okhdfcbank
+            September 7 at 10:00 AM
+            Axis CC XX87
+            UPI Reference ID: 998877665544
+        """.trimIndent()
+
+        val parsed = FieldParser.parse(ocrText)
+
+        assertEquals("Rohan Sharma", parsed.payee)
+        assertEquals("₹150", parsed.amount)
+        assertEquals("rohan@okhdfcbank", parsed.vpa)
+        assertEquals("998877665544", parsed.referenceNumber)
+    }
+
+    @Test
+    fun testAmountExtractionStopsAtPastTransactions() {
+        val ocrText = """
+            Payment Successful
+            Amit Patel
+            ₹500
+            Paid to: amit@oksbi
+            UPI Reference ID: 112233445566
+            Past Transactions
+            ₹1200
+            ₹2400
+        """.trimIndent()
+
+        val parsed = FieldParser.parse(ocrText)
+
+        assertEquals("Amit Patel", parsed.payee)
+        assertEquals("₹500", parsed.amount)
+        assertEquals("112233445566", parsed.referenceNumber)
+    }
+
+    @Test
+    fun testAmountExtractionBreaksOnPastTransactionsWhenEmpty() {
+        val ocrText = """
+            Payment Successful
+            Amit Patel
+            Paid to: amit@oksbi
+            UPI Reference ID: 112233445566
+            Past transactions
+            ₹1200
+        """.trimIndent()
+
+        val parsed = FieldParser.parse(ocrText)
+
+        assertEquals("Amit Patel", parsed.payee)
+        assertEquals("", parsed.amount)
+        assertEquals("112233445566", parsed.referenceNumber)
+    }
 }
 
