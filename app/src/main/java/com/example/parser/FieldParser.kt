@@ -75,6 +75,53 @@ object FieldParser {
     )
 
     /**
+     * Parses Screen A from two isolated cropped regions (header: payee & VPA, amount: ₹ amount).
+     */
+    fun parseScreenACrops(headerText: String, amountText: String): ParsedTransaction {
+        val nonBlankLines = headerText.lines().map { it.trim() }.filter { it.isNotBlank() }
+        var vpa = ""
+        var payee = ""
+
+        val vpaLineIndex = nonBlankLines.indexOfFirst { VPA_REGEX.matcher(it).find() }
+        if (vpaLineIndex != -1) {
+            val vpaLine = nonBlankLines[vpaLineIndex]
+            val matcher = VPA_REGEX.matcher(vpaLine)
+            vpa = if (matcher.find()) matcher.group() else vpaLine
+            val otherLine = nonBlankLines.filterIndexed { idx, _ -> idx != vpaLineIndex }.firstOrNull()
+            if (otherLine != null) {
+                payee = otherLine
+            }
+        } else {
+            payee = nonBlankLines.firstOrNull() ?: ""
+        }
+
+        var seenDecimal = false
+        val filtered = amountText.trim().filter { char ->
+            when {
+                char.isDigit() || char == ',' -> true
+                char == '.' && !seenDecimal -> {
+                    seenDecimal = true
+                    true
+                }
+                else -> false
+            }
+        }
+        val amount = if (filtered.any { it.isDigit() }) "₹$filtered" else ""
+
+        return ParsedTransaction(
+            amount = amount,
+            date = "",
+            payee = payee,
+            vpa = vpa,
+            referenceNumber = "",
+            paymentMethod = "",
+            note = "",
+            superMoneyTransactionId = "",
+            detectedScreenType = ParsedTransaction.ScreenType.SCREEN_A
+        )
+    }
+
+    /**
      * Parses the raw OCR string and extracts transaction fields.
      */
     fun parse(rawText: String): ParsedTransaction {

@@ -1,14 +1,27 @@
 package com.example.data.repository
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
 import com.example.data.database.TransactionDao
 import com.example.data.model.TransactionEntry
+import com.example.ocr.OcrProcessor
 import com.example.parser.FieldParser
 import com.example.parser.ParsedTransaction
+import com.example.service.CaptureOverlayService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.File
+
+data class ReprocessSummary(
+    val totalEntries: Int,
+    val reprocessedFromImage: Int,
+    val reprocessedFromTextOnly: Int,
+    val missingScreenshotFiles: Int,
+    val newlyMergedPairs: Int
+)
 
 class TransactionRepository(
     private val transactionDao: TransactionDao
@@ -34,42 +47,61 @@ class TransactionRepository(
     suspend fun processAndStoreCapture(
         rawOcrText: String,
         screenshotFilePath: String,
-        expectedScreenType: String = "SCREEN_A"
+        expectedScreenType: String = "SCREEN_A",
+        headerText: String = "",
+        amountText: String = ""
     ): Pair<TransactionEntry, Boolean> = withContext(Dispatchers.IO) {
-        val parsed = FieldParser.parse(rawOcrText)
+        val parsed = if (expectedScreenType == "SCREEN_A") {
+            if (headerText.isNotEmpty() || amountText.isNotEmpty()) {
+                FieldParser.parseScreenACrops(headerText, amountText)
+            } else {
+                FieldParser.parse(rawOcrText)
+            }
+        } else {
+            FieldParser.parse(rawOcrText)
+        }
         val ref = parsed.referenceNumber.trim()
         val isScreenB = expectedScreenType == "SCREEN_B"
 
-        // Check if there is an existing entry with the same reference number
-        if (ref.isNotEmpty()) {
-            val existingMatches = transactionDao.findByReference(ref)
-            val match = existingMatches.firstOrNull()
+        // 1. Check if there is an existing entry with the same reference number
+        val existingMatch = if (ref.isNotEmpty()) {
+            transactionDao.findByReference(ref).firstOrNull()
+        } else {
+            null
+        }
 
-            if (match != null) {
-                // Auto-merge with existing entry!
-                val mergedEntry = match.copy(
-                    amount = if (match.amount.isNotBlank()) match.amount else parsed.amount,
-                    date = if (match.date.isNotBlank()) match.date else parsed.date,
-                    payee = if (match.payee.isNotBlank()) match.payee else parsed.payee,
-                    vpa = if (match.vpa.isNotBlank()) match.vpa else parsed.vpa,
-                    paymentMethod = if (match.paymentMethod.isNotBlank()) match.paymentMethod else parsed.paymentMethod,
-                    note = if (parsed.note.isNotBlank()) parsed.note else match.note,
-                    superMoneyTransactionId = if (parsed.superMoneyTransactionId.isNotBlank()) {
-                        parsed.superMoneyTransactionId
-                    } else {
-                        match.superMoneyTransactionId
-                    },
-                    screenshotAPath = if (isScreenB) match.screenshotAPath else (screenshotFilePath.ifBlank { match.screenshotAPath }),
-                    screenshotBPath = if (isScreenB) screenshotFilePath else match.screenshotBPath,
-                    rawOcrText = buildMergedRawText(match.rawOcrText, rawOcrText, isScreenB),
-                    isMerged = true,
-                    sourceScreenType = "MERGED",
-                    updatedAt = System.currentTimeMillis()
-                )
-                transactionDao.update(mergedEntry)
-                Log.d("TransactionRepo", "Auto-merged entry ID ${mergedEntry.id} with ref $ref")
-                return@withContext Pair(mergedEntry, true)
-            }
+        // 2. Sequence-based merge fallback: check for most recent unmerged entry of opposite type within 10 minutes
+        val match = existingMatch ?: run {
+            val oppositeType = if (expectedScreenType == "SCREEN_A") "SCREEN_B" else "SCREEN_A"
+            val tenMinutesAgo = System.currentTimeMillis() - 10 * 60 * 1000L
+            transactionDao.findMostRecentUnmergedByType(oppositeType, tenMinutesAgo)
+        }
+
+        if (match != null) {
+            // Auto-merge with existing entry!
+            val mergedEntry = match.copy(
+                amount = if (match.amount.isNotBlank()) match.amount else parsed.amount,
+                date = if (match.date.isNotBlank()) match.date else parsed.date,
+                payee = if (match.payee.isNotBlank()) match.payee else parsed.payee,
+                vpa = if (match.vpa.isNotBlank()) match.vpa else parsed.vpa,
+                referenceNumber = if (match.referenceNumber.isNotBlank()) match.referenceNumber else ref,
+                paymentMethod = if (match.paymentMethod.isNotBlank()) match.paymentMethod else parsed.paymentMethod,
+                note = if (parsed.note.isNotBlank()) parsed.note else match.note,
+                superMoneyTransactionId = if (parsed.superMoneyTransactionId.isNotBlank()) {
+                    parsed.superMoneyTransactionId
+                } else {
+                    match.superMoneyTransactionId
+                },
+                screenshotAPath = if (isScreenB) match.screenshotAPath else (screenshotFilePath.ifBlank { match.screenshotAPath }),
+                screenshotBPath = if (isScreenB) screenshotFilePath else match.screenshotBPath,
+                rawOcrText = buildMergedRawText(match.rawOcrText, rawOcrText, isScreenB),
+                isMerged = true,
+                sourceScreenType = "MERGED",
+                updatedAt = System.currentTimeMillis()
+            )
+            transactionDao.update(mergedEntry)
+            Log.d("TransactionRepo", "Auto-merged entry ID ${mergedEntry.id} with ref $ref (matchedByRef=${existingMatch != null})")
+            return@withContext Pair(mergedEntry, true)
         }
 
         // Otherwise, insert as a new unmerged entry
@@ -241,6 +273,218 @@ class TransactionRepository(
             }
         }
         Pair(count, totalBytes)
+    }
+
+    /**
+     * Re-analyzes all stored entries using current cropping and parsing logic,
+     * and retroactively merges unpaired entries within 5 minutes.
+     */
+    suspend fun reprocessAllEntries(
+        context: Context,
+        onProgress: (current: Int, total: Int) -> Unit
+    ): ReprocessSummary = withContext(Dispatchers.IO) {
+        val entries = transactionDao.getAllTransactionsSync()
+        val totalEntries = entries.size
+        var reprocessedFromImage = 0
+        var reprocessedFromTextOnly = 0
+        var missingScreenshotFiles = 0
+
+        if (totalEntries == 0) {
+            return@withContext ReprocessSummary(
+                totalEntries = 0,
+                reprocessedFromImage = 0,
+                reprocessedFromTextOnly = 0,
+                missingScreenshotFiles = 0,
+                newlyMergedPairs = 0
+            )
+        }
+
+        // Step b: Refresh each entry
+        for ((index, entry) in entries.withIndex()) {
+            var updated = entry
+            var processedFromImageThisEntry = false
+            var hadMissingFileThisEntry = false
+
+            val hasPathA = !entry.screenshotAPath.isNullOrBlank()
+            val hasPathB = !entry.screenshotBPath.isNullOrBlank()
+
+            if (!hasPathA && !hasPathB) {
+                hadMissingFileThisEntry = true
+                missingScreenshotFiles++
+            } else {
+                // Process Screen A if path present
+                if (hasPathA) {
+                    val fileA = File(entry.screenshotAPath!!)
+                    if (fileA.exists()) {
+                        val bitmap = BitmapFactory.decodeFile(fileA.absolutePath)
+                        if (bitmap != null) {
+                            val hX = (bitmap.width * CaptureOverlayService.SCREEN_A_HEADER_X_PERCENT).toInt().coerceIn(0, bitmap.width - 1)
+                            val hY = (bitmap.height * CaptureOverlayService.SCREEN_A_HEADER_Y_PERCENT).toInt().coerceIn(0, bitmap.height - 1)
+                            val hWidth = (bitmap.width * CaptureOverlayService.SCREEN_A_HEADER_WIDTH_PERCENT).toInt().coerceAtMost(bitmap.width - hX).coerceAtLeast(1)
+                            val hHeight = (bitmap.height * CaptureOverlayService.SCREEN_A_HEADER_HEIGHT_PERCENT).toInt().coerceAtMost(bitmap.height - hY).coerceAtLeast(1)
+                            val headerCrop = Bitmap.createBitmap(bitmap, hX, hY, hWidth, hHeight)
+
+                            val aX = (bitmap.width * CaptureOverlayService.SCREEN_A_AMOUNT_X_PERCENT).toInt().coerceIn(0, bitmap.width - 1)
+                            val aY = (bitmap.height * CaptureOverlayService.SCREEN_A_AMOUNT_Y_PERCENT).toInt().coerceIn(0, bitmap.height - 1)
+                            val aWidth = (bitmap.width * CaptureOverlayService.SCREEN_A_AMOUNT_WIDTH_PERCENT).toInt().coerceAtMost(bitmap.width - aX).coerceAtLeast(1)
+                            val aHeight = (bitmap.height * CaptureOverlayService.SCREEN_A_AMOUNT_HEIGHT_PERCENT).toInt().coerceAtMost(bitmap.height - aY).coerceAtLeast(1)
+                            val amountCrop = Bitmap.createBitmap(bitmap, aX, aY, aWidth, aHeight)
+
+                            try {
+                                val headerText = OcrProcessor.extractText(headerCrop)
+                                val amountText = OcrProcessor.extractText(amountCrop)
+                                val parsedA = FieldParser.parseScreenACrops(headerText, amountText)
+                                if (parsedA.amount.isNotBlank()) updated = updated.copy(amount = parsedA.amount)
+                                if (parsedA.payee.isNotBlank()) updated = updated.copy(payee = parsedA.payee)
+                                if (parsedA.vpa.isNotBlank()) updated = updated.copy(vpa = parsedA.vpa)
+                                processedFromImageThisEntry = true
+                            } catch (e: Exception) {
+                                Log.e("TransactionRepo", "Error OCR on Screen A crop", e)
+                                hadMissingFileThisEntry = true
+                                missingScreenshotFiles++
+                            } finally {
+                                if (headerCrop != bitmap) headerCrop.recycle()
+                                if (amountCrop != bitmap) amountCrop.recycle()
+                                bitmap.recycle()
+                            }
+                        } else {
+                            hadMissingFileThisEntry = true
+                            missingScreenshotFiles++
+                        }
+                    } else {
+                        hadMissingFileThisEntry = true
+                        missingScreenshotFiles++
+                    }
+                }
+
+                // Process Screen B if path present
+                if (hasPathB) {
+                    val fileB = File(entry.screenshotBPath!!)
+                    if (fileB.exists()) {
+                        val bitmap = BitmapFactory.decodeFile(fileB.absolutePath)
+                        if (bitmap != null) {
+                            val startY = (bitmap.height * CaptureOverlayService.SCREEN_B_TOP_Y_PERCENT).toInt().coerceIn(0, bitmap.height - 1)
+                            val cropWidth = (bitmap.width * CaptureOverlayService.SCREEN_B_LEFT_WIDTH_PERCENT).toInt().coerceIn(1, bitmap.width)
+                            val cropHeight = (bitmap.height * CaptureOverlayService.SCREEN_B_BOTTOM_HEIGHT_PERCENT).toInt().coerceAtMost(bitmap.height - startY).coerceAtLeast(1)
+                            val croppedBitmap = Bitmap.createBitmap(bitmap, 0, startY, cropWidth, cropHeight)
+
+                            try {
+                                val rawB = OcrProcessor.extractText(croppedBitmap)
+                                val parsedB = FieldParser.parse(rawB)
+                                if (parsedB.date.isNotBlank()) updated = updated.copy(date = parsedB.date)
+                                if (parsedB.paymentMethod.isNotBlank()) updated = updated.copy(paymentMethod = parsedB.paymentMethod)
+                                if (parsedB.note.isNotBlank()) updated = updated.copy(note = parsedB.note)
+                                if (parsedB.referenceNumber.isNotBlank()) updated = updated.copy(referenceNumber = parsedB.referenceNumber)
+                                if (parsedB.superMoneyTransactionId.isNotBlank()) updated = updated.copy(superMoneyTransactionId = parsedB.superMoneyTransactionId)
+                                processedFromImageThisEntry = true
+                            } catch (e: Exception) {
+                                Log.e("TransactionRepo", "Error OCR on Screen B crop", e)
+                                hadMissingFileThisEntry = true
+                                missingScreenshotFiles++
+                            } finally {
+                                if (croppedBitmap != bitmap) croppedBitmap.recycle()
+                                bitmap.recycle()
+                            }
+                        } else {
+                            hadMissingFileThisEntry = true
+                            missingScreenshotFiles++
+                        }
+                    } else {
+                        hadMissingFileThisEntry = true
+                        missingScreenshotFiles++
+                    }
+                }
+            }
+
+            if (processedFromImageThisEntry) {
+                reprocessedFromImage++
+            } else {
+                // Re-run existing parse() on stored rawOcrText
+                val parsed = FieldParser.parse(entry.rawOcrText)
+                if (parsed.amount.isNotBlank()) updated = updated.copy(amount = parsed.amount)
+                if (parsed.payee.isNotBlank()) updated = updated.copy(payee = parsed.payee)
+                if (parsed.vpa.isNotBlank()) updated = updated.copy(vpa = parsed.vpa)
+                if (parsed.date.isNotBlank()) updated = updated.copy(date = parsed.date)
+                if (parsed.paymentMethod.isNotBlank()) updated = updated.copy(paymentMethod = parsed.paymentMethod)
+                if (parsed.note.isNotBlank()) updated = updated.copy(note = parsed.note)
+                if (parsed.referenceNumber.isNotBlank()) updated = updated.copy(referenceNumber = parsed.referenceNumber)
+                if (parsed.superMoneyTransactionId.isNotBlank()) updated = updated.copy(superMoneyTransactionId = parsed.superMoneyTransactionId)
+
+                reprocessedFromTextOnly++
+                if (!hadMissingFileThisEntry) {
+                    missingScreenshotFiles++
+                }
+            }
+
+            updated = updated.copy(updatedAt = System.currentTimeMillis())
+            transactionDao.update(updated)
+            onProgress(index + 1, totalEntries)
+        }
+
+        // Step c: Retroactive pairing pass
+        val unmerged = transactionDao.getAllTransactionsSync().filter { !it.isMerged }
+        val screenAOnly = mutableListOf<TransactionEntry>()
+        val screenBOnly = mutableListOf<TransactionEntry>()
+
+        for (item in unmerged) {
+            if (item.screenshotBPath == null && (item.screenshotAPath != null || item.sourceScreenType == "SCREEN_A")) {
+                screenAOnly.add(item)
+            } else if (item.screenshotAPath == null && (item.screenshotBPath != null || item.sourceScreenType == "SCREEN_B")) {
+                screenBOnly.add(item)
+            }
+        }
+
+        var newlyMergedPairs = 0
+        val maxDiffMs = 5 * 60 * 1000L // 5 minutes
+
+        for (entryA in screenAOnly) {
+            if (screenBOnly.isEmpty()) break
+
+            var bestIndex = -1
+            var minDiff = Long.MAX_VALUE
+
+            for (i in screenBOnly.indices) {
+                val candidateB = screenBOnly[i]
+                val diff = Math.abs(entryA.createdAt - candidateB.createdAt)
+                if (diff < minDiff) {
+                    minDiff = diff
+                    bestIndex = i
+                }
+            }
+
+            if (bestIndex != -1 && minDiff <= maxDiffMs) {
+                val matchedB = screenBOnly.removeAt(bestIndex)
+
+                val mergedEntry = entryA.copy(
+                    amount = if (entryA.amount.isNotBlank()) entryA.amount else matchedB.amount,
+                    date = if (entryA.date.isNotBlank()) entryA.date else matchedB.date,
+                    payee = if (entryA.payee.isNotBlank()) entryA.payee else matchedB.payee,
+                    vpa = if (entryA.vpa.isNotBlank()) entryA.vpa else matchedB.vpa,
+                    referenceNumber = if (entryA.referenceNumber.isNotBlank()) entryA.referenceNumber else matchedB.referenceNumber,
+                    paymentMethod = if (entryA.paymentMethod.isNotBlank()) entryA.paymentMethod else matchedB.paymentMethod,
+                    note = if (matchedB.note.isNotBlank()) matchedB.note else entryA.note,
+                    superMoneyTransactionId = if (entryA.superMoneyTransactionId.isNotBlank()) entryA.superMoneyTransactionId else matchedB.superMoneyTransactionId,
+                    screenshotAPath = entryA.screenshotAPath ?: matchedB.screenshotAPath,
+                    screenshotBPath = matchedB.screenshotBPath ?: entryA.screenshotBPath,
+                    rawOcrText = buildMergedRawText(entryA.rawOcrText, matchedB.rawOcrText, isScreenB = true),
+                    isMerged = true,
+                    sourceScreenType = "MERGED",
+                    updatedAt = System.currentTimeMillis()
+                )
+
+                transactionDao.update(mergedEntry)
+                transactionDao.delete(matchedB)
+                newlyMergedPairs++
+            }
+        }
+
+        ReprocessSummary(
+            totalEntries = totalEntries,
+            reprocessedFromImage = reprocessedFromImage,
+            reprocessedFromTextOnly = reprocessedFromTextOnly,
+            missingScreenshotFiles = missingScreenshotFiles,
+            newlyMergedPairs = newlyMergedPairs
+        )
     }
 
     private fun buildMergedRawText(existingText: String, newText: String, isScreenB: Boolean): String {

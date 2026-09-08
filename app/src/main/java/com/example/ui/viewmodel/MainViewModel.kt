@@ -14,6 +14,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.UpiNoteLoggerApplication
 import com.example.data.model.TransactionEntry
+import com.example.data.repository.ReprocessSummary
 import com.example.export.CsvExporter
 import com.example.ocr.OcrProcessor
 import com.example.service.CaptureOverlayService
@@ -40,6 +41,12 @@ data class ScreenshotStorageStats(
     val formattedSize: String = "0 KB"
 )
 
+data class ReprocessProgress(
+    val isReprocessing: Boolean = false,
+    val current: Int = 0,
+    val total: Int = 0
+)
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = (application as UpiNoteLoggerApplication).repository
@@ -57,6 +64,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _storageStats = MutableStateFlow(ScreenshotStorageStats())
     val storageStats: StateFlow<ScreenshotStorageStats> = _storageStats.asStateFlow()
+
+    private val _reprocessProgress = MutableStateFlow(ReprocessProgress())
+    val reprocessProgress: StateFlow<ReprocessProgress> = _reprocessProgress.asStateFlow()
+
+    private val _reprocessSummary = MutableStateFlow<ReprocessSummary?>(null)
+    val reprocessSummary: StateFlow<ReprocessSummary?> = _reprocessSummary.asStateFlow()
+
+    fun clearReprocessSummary() {
+        _reprocessSummary.value = null
+    }
+
+    fun reprocessAllEntries(context: Context) {
+        viewModelScope.launch {
+            _reprocessProgress.value = ReprocessProgress(isReprocessing = true, current = 0, total = 0)
+            try {
+                val summary = repository.reprocessAllEntries(context) { current, total ->
+                    _reprocessProgress.value = ReprocessProgress(
+                        isReprocessing = true,
+                        current = current,
+                        total = total
+                    )
+                }
+                _reprocessSummary.value = summary
+                refreshStorageStats()
+            } catch (e: Exception) {
+                _snackbarMessage.value = "Error during re-analysis: ${e.message}"
+            } finally {
+                _reprocessProgress.value = ReprocessProgress(isReprocessing = false, current = 0, total = 0)
+            }
+        }
+    }
 
     init {
         refreshStorageStats()

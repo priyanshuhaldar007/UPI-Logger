@@ -84,6 +84,21 @@ class CaptureOverlayService : Service() {
         const val EXTRA_RESULT_CODE = "extra_result_code"
         const val EXTRA_RESULT_DATA = "extra_result_data"
 
+        // Cropping percentage constants for OCR optimization (tunable)
+        const val SCREEN_A_HEADER_X_PERCENT = 0.20f
+        const val SCREEN_A_HEADER_Y_PERCENT = 0.04f
+        const val SCREEN_A_HEADER_WIDTH_PERCENT = 0.55f
+        const val SCREEN_A_HEADER_HEIGHT_PERCENT = 0.10f
+
+        const val SCREEN_A_AMOUNT_X_PERCENT = 0.18f
+        const val SCREEN_A_AMOUNT_Y_PERCENT = 0.16f
+        const val SCREEN_A_AMOUNT_WIDTH_PERCENT = 0.30f
+        const val SCREEN_A_AMOUNT_HEIGHT_PERCENT = 0.10f
+
+        const val SCREEN_B_TOP_Y_PERCENT = 0.30f
+        const val SCREEN_B_BOTTOM_HEIGHT_PERCENT = 0.70f
+        const val SCREEN_B_LEFT_WIDTH_PERCENT = 0.78f
+
         private val _isRunning = MutableStateFlow(false)
         val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
 
@@ -464,17 +479,62 @@ class CaptureOverlayService : Service() {
                     }
                 }
 
-                // Run on-device ML Kit OCR
-                val rawText = OcrProcessor.extractText(bitmap)
-                Log.d(TAG, "Extracted raw OCR: ${rawText.take(120)}...")
-
-                // Store & Auto-merge in Room
+                // Run on-device ML Kit OCR on cropped copies
                 val repo = (application as UpiNoteLoggerApplication).repository
-                val (entry, isAutoMerged) = repo.processAndStoreCapture(
-                    rawOcrText = rawText,
-                    screenshotFilePath = imageFile.absolutePath,
-                    expectedScreenType = expectedScreenType
-                )
+                val (entry, isAutoMerged) = if (expectedScreenType == "SCREEN_A") {
+                    val hX = (bitmap.width * SCREEN_A_HEADER_X_PERCENT).toInt().coerceIn(0, bitmap.width - 1)
+                    val hY = (bitmap.height * SCREEN_A_HEADER_Y_PERCENT).toInt().coerceIn(0, bitmap.height - 1)
+                    val hWidth = (bitmap.width * SCREEN_A_HEADER_WIDTH_PERCENT).toInt().coerceAtMost(bitmap.width - hX).coerceAtLeast(1)
+                    val hHeight = (bitmap.height * SCREEN_A_HEADER_HEIGHT_PERCENT).toInt().coerceAtMost(bitmap.height - hY).coerceAtLeast(1)
+                    val headerCrop = Bitmap.createBitmap(bitmap, hX, hY, hWidth, hHeight)
+
+                    val aX = (bitmap.width * SCREEN_A_AMOUNT_X_PERCENT).toInt().coerceIn(0, bitmap.width - 1)
+                    val aY = (bitmap.height * SCREEN_A_AMOUNT_Y_PERCENT).toInt().coerceIn(0, bitmap.height - 1)
+                    val aWidth = (bitmap.width * SCREEN_A_AMOUNT_WIDTH_PERCENT).toInt().coerceAtMost(bitmap.width - aX).coerceAtLeast(1)
+                    val aHeight = (bitmap.height * SCREEN_A_AMOUNT_HEIGHT_PERCENT).toInt().coerceAtMost(bitmap.height - aY).coerceAtLeast(1)
+                    val amountCrop = Bitmap.createBitmap(bitmap, aX, aY, aWidth, aHeight)
+
+                    var headerText = ""
+                    var amountText = ""
+                    try {
+                        headerText = OcrProcessor.extractText(headerCrop)
+                        amountText = OcrProcessor.extractText(amountCrop)
+                    } finally {
+                        if (headerCrop != bitmap) headerCrop.recycle()
+                        if (amountCrop != bitmap) amountCrop.recycle()
+                    }
+                    Log.d(TAG, "Screen A Crops - Header: ${headerText.take(60)}, Amount: ${amountText.take(60)}")
+
+                    val rawText = "$headerText\n$amountText".trim()
+                    repo.processAndStoreCapture(
+                        rawOcrText = rawText,
+                        screenshotFilePath = imageFile.absolutePath,
+                        expectedScreenType = expectedScreenType,
+                        headerText = headerText,
+                        amountText = amountText
+                    )
+                } else {
+                    // Screen B (or other): crop to bottom 70% of height and left 78% of width
+                    val startY = (bitmap.height * SCREEN_B_TOP_Y_PERCENT).toInt().coerceIn(0, bitmap.height - 1)
+                    val cropWidth = (bitmap.width * SCREEN_B_LEFT_WIDTH_PERCENT).toInt().coerceIn(1, bitmap.width)
+                    val cropHeight = (bitmap.height * SCREEN_B_BOTTOM_HEIGHT_PERCENT).toInt().coerceAtMost(bitmap.height - startY).coerceAtLeast(1)
+                    val croppedBitmap = Bitmap.createBitmap(bitmap, 0, startY, cropWidth, cropHeight)
+
+                    val rawText = try {
+                        OcrProcessor.extractText(croppedBitmap)
+                    } finally {
+                        if (croppedBitmap != bitmap) {
+                            croppedBitmap.recycle()
+                        }
+                    }
+                    Log.d(TAG, "Extracted raw OCR: ${rawText.take(120)}...")
+
+                    repo.processAndStoreCapture(
+                        rawOcrText = rawText,
+                        screenshotFilePath = imageFile.absolutePath,
+                        expectedScreenType = expectedScreenType
+                    )
+                }
 
                 // Feedback message
                 val feedback = when {

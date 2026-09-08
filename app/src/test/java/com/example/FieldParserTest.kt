@@ -233,5 +233,58 @@ class FieldParserTest {
         assertEquals("", parsed.amount)
         assertEquals("112233445566", parsed.referenceNumber)
     }
+
+    @Test
+    fun testParseScreenACrops() {
+        val headerText = """
+            Rohan Sharma
+            rohan@okhdfcbank
+        """.trimIndent()
+        val amountText = "₹150.50"
+
+        val parsed = FieldParser.parseScreenACrops(headerText, amountText)
+
+        assertEquals("Rohan Sharma", parsed.payee)
+        assertEquals("rohan@okhdfcbank", parsed.vpa)
+        assertEquals("₹150.50", parsed.amount)
+        assertEquals("", parsed.date)
+        assertEquals("", parsed.referenceNumber)
+        assertEquals("", parsed.paymentMethod)
+        assertEquals("", parsed.note)
+        assertEquals("", parsed.superMoneyTransactionId)
+        assertEquals(ParsedTransaction.ScreenType.SCREEN_A, parsed.detectedScreenType)
+    }
+
+    @Test
+    fun testParseScreenACropsVpaFirst() {
+        val headerText = """
+            priya@oksbi
+            Priya Sharma
+        """.trimIndent()
+        val amountText = "   ₹ 2,400   "
+
+        val parsed = FieldParser.parseScreenACrops(headerText, amountText)
+
+        assertEquals("Priya Sharma", parsed.payee)
+        assertEquals("priya@oksbi", parsed.vpa)
+        assertEquals("₹2,400", parsed.amount)
+        assertEquals("", parsed.referenceNumber)
+        assertEquals(ParsedTransaction.ScreenType.SCREEN_A, parsed.detectedScreenType)
+    }
+
+    @Test
+    fun testParseScreenACropsNumericOnlyWithoutGlyph() {
+        val headerText = """
+            Rohan Sharma
+            rohan@okhdfcbank
+        """.trimIndent()
+        val amountText = "  350.00  "
+
+        val parsed = FieldParser.parseScreenACrops(headerText, amountText)
+
+        assertEquals("Rohan Sharma", parsed.payee)
+        assertEquals("rohan@okhdfcbank", parsed.vpa)
+        assertEquals("₹350.00", parsed.amount)
+    }
 }
 

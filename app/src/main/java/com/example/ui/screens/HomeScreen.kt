@@ -32,13 +32,16 @@ import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -63,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -103,7 +107,10 @@ fun HomeScreen(
     val unreviewedCount by viewModel.unreviewedCount.collectAsStateWithLifecycle()
     val allTransactions by viewModel.allTransactions.collectAsStateWithLifecycle()
     val isServiceRunning by viewModel.isCaptureServiceRunning.collectAsStateWithLifecycle()
+    val reprocessProgress by viewModel.reprocessProgress.collectAsStateWithLifecycle()
+    val reprocessSummary by viewModel.reprocessSummary.collectAsStateWithLifecycle()
 
+    var showReanalyzeConfirmDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     var selectedEntryForDetail by remember { mutableStateOf<TransactionEntry?>(null) }
     var selectedImageForViewer by remember { mutableStateOf<Triple<TransactionEntry, String, String>?>(null) }
@@ -419,6 +426,37 @@ fun HomeScreen(
                 }
             }
 
+            // --- Re-analyze All Captures Button ---
+            OutlinedButton(
+                onClick = { showReanalyzeConfirmDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .testTag("reanalyze_all_captures_button"),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, PolishCardBorder),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = PolishSurface,
+                    contentColor = PolishPrimary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = PolishPrimary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Re-analyze All Captures",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = PolishPrimary
+                    )
+                )
+            }
+
             // --- Recent Activity Section Container ---
             Box(
                 modifier = Modifier
@@ -592,6 +630,126 @@ fun HomeScreen(
                 viewModel.exportCsv(ctx, onlyRev, callback)
             },
             onDismiss = { showExportDialog = false }
+        )
+    }
+
+    // Re-analyze Confirmation Dialog
+    if (showReanalyzeConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showReanalyzeConfirmDialog = false },
+            title = {
+                Text(
+                    text = "Re-analyze All Captures?",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    text = "This will re-run OCR and parsing on every stored capture using the latest crop areas and parser rules, and retroactively merge any leftover unpaired entries. This may take a while for large datasets and re-reads stored screenshots.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PolishTextSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showReanalyzeConfirmDialog = false
+                        viewModel.reprocessAllEntries(context)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PolishPrimary),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Re-analyze")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReanalyzeConfirmDialog = false }) {
+                    Text("Cancel", color = PolishTextSecondary)
+                }
+            }
+        )
+    }
+
+    // Re-analyze Progress Dialog
+    if (reprocessProgress.isReprocessing) {
+        AlertDialog(
+            onDismissRequest = { /* Cannot dismiss while running */ },
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+            title = {
+                Text(
+                    text = "Re-analyzing Captures...",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val progressLabel = if (reprocessProgress.total > 0) {
+                        "Reprocessing ${reprocessProgress.current} of ${reprocessProgress.total}"
+                    } else {
+                        "Preparing captures..."
+                    }
+                    Text(
+                        text = progressLabel,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            color = PolishTextPrimary
+                        )
+                    )
+                    if (reprocessProgress.total > 0) {
+                        LinearProgressIndicator(
+                            progress = { reprocessProgress.current.toFloat() / reprocessProgress.total.coerceAtLeast(1) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp),
+                            color = PolishPrimary,
+                            trackColor = PolishPrimaryContainer
+                        )
+                    } else {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp),
+                            color = PolishPrimary,
+                            trackColor = PolishPrimaryContainer
+                        )
+                    }
+                }
+            },
+            confirmButton = {}
+        )
+    }
+
+    // Re-analyze Summary Dialog
+    reprocessSummary?.let { summary ->
+        AlertDialog(
+            onDismissRequest = { viewModel.clearReprocessSummary() },
+            title = {
+                Text(
+                    text = "Re-analysis Complete",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    text = "Reprocessed ${summary.totalEntries} entries (${summary.reprocessedFromImage} from saved images, ${summary.reprocessedFromTextOnly} from stored text only, ${summary.missingScreenshotFiles} screenshots were missing). Merged ${summary.newlyMergedPairs} additional pairs.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PolishTextPrimary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.clearReprocessSummary() },
+                    colors = ButtonDefaults.buttonColors(containerColor = PolishPrimary),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Done")
+                }
+            }
         )
     }
 }

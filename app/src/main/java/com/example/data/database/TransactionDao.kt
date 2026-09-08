@@ -15,6 +15,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY createdAt DESC")
     fun getAllTransactions(): Flow<List<TransactionEntry>>
 
+    @Query("SELECT * FROM transactions ORDER BY createdAt ASC")
+    suspend fun getAllTransactionsSync(): List<TransactionEntry>
+
     @Query("SELECT * FROM transactions WHERE isReviewed = 0 ORDER BY createdAt DESC")
     fun getUnreviewedTransactions(): Flow<List<TransactionEntry>>
 
@@ -29,6 +32,9 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE referenceNumber = :ref AND referenceNumber != '' ORDER BY createdAt DESC")
     suspend fun findByReference(ref: String): List<TransactionEntry>
+
+    @Query("SELECT * FROM transactions WHERE isMerged = 0 AND sourceScreenType = :screenType AND createdAt >= :sinceTimestamp ORDER BY createdAt DESC LIMIT 1")
+    suspend fun findMostRecentUnmergedByType(screenType: String, sinceTimestamp: Long): TransactionEntry?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entry: TransactionEntry): Long
