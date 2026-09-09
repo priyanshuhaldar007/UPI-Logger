@@ -222,6 +222,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Computes the epoch timestamp boundaries (start and end in millis) for a given calendar month.
+     * Uses 0-based monthIndex (0 = January, 11 = December).
+     */
+    fun getMonthTimeRange(year: Int, monthIndex: Int): Pair<Long, Long> {
+        val cal = java.util.Calendar.getInstance()
+        cal.clear()
+        cal.set(java.util.Calendar.YEAR, year)
+        cal.set(java.util.Calendar.MONTH, monthIndex)
+        cal.set(java.util.Calendar.DAY_OF_MONTH, 1)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        val start = cal.timeInMillis
+        val maxDay = cal.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
+        cal.set(java.util.Calendar.DAY_OF_MONTH, maxDay)
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        cal.set(java.util.Calendar.MINUTE, 59)
+        cal.set(java.util.Calendar.SECOND, 59)
+        cal.set(java.util.Calendar.MILLISECOND, 999)
+        val end = cal.timeInMillis
+        return Pair(start, end)
+    }
+
+    suspend fun getTransactionCountForMonth(year: Int, monthIndex: Int): Int {
+        val (start, end) = getMonthTimeRange(year, monthIndex)
+        return repository.getTransactionCountInMonth(start, end)
+    }
+
+    fun deleteMonthData(year: Int, monthIndex: Int, onComplete: (deletedCount: Int) -> Unit) {
+        viewModelScope.launch {
+            val (start, end) = getMonthTimeRange(year, monthIndex)
+            val deleted = repository.deleteTransactionsInMonth(start, end)
+            refreshStorageStats()
+            _snackbarMessage.value = if (deleted > 0) {
+                "Permanently deleted $deleted records from selected month"
+            } else {
+                "No records found to delete for selected month"
+            }
+            onComplete(deleted)
+        }
+    }
+
     fun toggleReviewed(entry: TransactionEntry) {
         viewModelScope.launch {
             val newStatus = !entry.isReviewed

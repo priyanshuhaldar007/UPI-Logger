@@ -62,6 +62,9 @@ val AppleAccentDark = Color(0xFF0056B3)
 val AppleStatusMergedBg = Color(0xFFE8F5E9)
 val AppleStatusMergedFg = Color(0xFF2E7D32)
 
+val AppleStatusWaitingBg = Color(0xFFFFF3E0)
+val AppleStatusWaitingFg = Color(0xFFE65100)
+
 val AppleStatusScreenABg = Color(0xFFEBF3FB)
 val AppleStatusScreenAFg = Color(0xFF1D6FBA)
 

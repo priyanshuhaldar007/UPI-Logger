@@ -53,4 +53,13 @@ interface TransactionDao {
 
     @Query("UPDATE transactions SET screenshotAPath = NULL, screenshotBPath = NULL")
     suspend fun clearAllScreenshotPaths()
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE createdAt >= :startTimeMillis AND createdAt <= :endTimeMillis")
+    suspend fun getCountByCreatedAtRange(startTimeMillis: Long, endTimeMillis: Long): Int
+
+    @Query("SELECT * FROM transactions WHERE createdAt >= :startTimeMillis AND createdAt <= :endTimeMillis")
+    suspend fun getTransactionsByCreatedAtRange(startTimeMillis: Long, endTimeMillis: Long): List<TransactionEntry>
+
+    @Query("DELETE FROM transactions WHERE createdAt >= :startTimeMillis AND createdAt <= :endTimeMillis")
+    suspend fun deleteByCreatedAtRange(startTimeMillis: Long, endTimeMillis: Long): Int
 }

@@ -94,6 +94,7 @@ object AppleSpacing {
 }
 
 object AppleRadius {
+    val badge = 6.dp
     val chip = 12.dp
     val card = 20.dp
     val sheet = 28.dp

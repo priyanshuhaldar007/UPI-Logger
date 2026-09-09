@@ -65,15 +65,6 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.data.model.TransactionEntry
-import com.example.ui.theme.PolishCardBorder
-import com.example.ui.theme.PolishMergedContainer
-import com.example.ui.theme.PolishMergedText
-import com.example.ui.theme.PolishPrimary
-import com.example.ui.theme.PolishTextMuted
-import com.example.ui.theme.PolishTextPrimary
-import com.example.ui.theme.PolishTextSecondary
-import com.example.ui.theme.PolishWaitingContainer
-import com.example.ui.theme.PolishWaitingText
 import java.io.File
 
 @Composable
@@ -106,7 +97,7 @@ fun EditTransactionDialog(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(24.dp))
-                .border(1.dp, PolishCardBorder, RoundedCornerShape(24.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
                 .padding(20.dp)
         ) {
             Column(
@@ -126,7 +117,7 @@ fun EditTransactionDialog(
                                 text = "Transaction Details",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF001D36)
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -134,12 +125,12 @@ fun EditTransactionDialog(
                             if (entry.isMerged) {
                                 Box(
                                     modifier = Modifier
-                                        .background(PolishMergedContainer, RoundedCornerShape(4.dp))
+                                        .background(MaterialTheme.colorScheme.tertiaryContainer, RoundedCornerShape(4.dp))
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "MERGED",
-                                        color = PolishMergedText,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -147,12 +138,12 @@ fun EditTransactionDialog(
                             } else {
                                 Box(
                                     modifier = Modifier
-                                        .background(PolishCardBorder, RoundedCornerShape(4.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp))
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "WAITING",
-                                        color = PolishTextSecondary,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -162,7 +153,7 @@ fun EditTransactionDialog(
                         Text(
                             text = if (entry.date.isNotEmpty()) entry.date else "Captured locally",
                             style = MaterialTheme.typography.bodySmall,
-                            color = PolishTextMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -170,7 +161,7 @@ fun EditTransactionDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = PolishTextSecondary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -181,7 +172,7 @@ fun EditTransactionDialog(
                 Text(
                     text = "Attached Screen Captures",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = PolishTextSecondary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -200,8 +191,8 @@ fun EditTransactionDialog(
                                 }
                             },
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F9FB)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PolishCardBorder)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         if (fileA?.exists() == true) {
                             Box(modifier = Modifier.fillMaxWidth()) {
@@ -245,8 +236,8 @@ fun EditTransactionDialog(
                                 verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Default.Image, contentDescription = null, tint = PolishTextMuted)
-                                Text("No Screen A", style = MaterialTheme.typography.labelSmall, color = PolishTextMuted)
+                                Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("No Screen A", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -263,8 +254,8 @@ fun EditTransactionDialog(
                                 }
                             },
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F9FB)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PolishCardBorder)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         if (fileB?.exists() == true) {
                             Box(modifier = Modifier.fillMaxWidth()) {
@@ -308,11 +299,11 @@ fun EditTransactionDialog(
                                 verticalArrangement = Arrangement.Center,
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Default.Image, contentDescription = null, tint = PolishTextMuted)
+                                Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
                                     text = if (entry.isMerged) "No Screen B" else "Missing Screen B",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (entry.isMerged) PolishTextMuted else PolishWaitingText
+                                    color = if (entry.isMerged) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
                                 )
                             }
                         }
@@ -421,13 +412,13 @@ fun EditTransactionDialog(
                     Checkbox(
                         checked = isReviewed,
                         onCheckedChange = { isReviewed = it },
-                        colors = CheckboxDefaults.colors(checkedColor = PolishPrimary)
+                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Mark as Reviewed",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                        color = PolishTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -457,7 +448,7 @@ fun EditTransactionDialog(
                     // Delete button
                     OutlinedButton(
                         onClick = { showDeleteConfirm = true },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFBA1A1A)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -483,7 +474,7 @@ fun EditTransactionDialog(
                             onSave(updated)
                             onDismiss()
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PolishPrimary),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {

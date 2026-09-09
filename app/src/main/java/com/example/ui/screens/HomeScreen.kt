@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CallMerge
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FileDownload
@@ -74,6 +75,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.data.model.TransactionEntry
+import com.example.ui.components.DeleteMonthDialog
 import com.example.ui.components.EditTransactionDialog
 import com.example.ui.components.ExportCsvDialog
 import com.example.ui.components.ImageViewerDialog
@@ -134,6 +136,7 @@ fun HomeScreen(
     val reprocessSummary by viewModel.reprocessSummary.collectAsStateWithLifecycle()
 
     var showReanalyzeConfirmDialog by remember { mutableStateOf(false) }
+    var showDeleteMonthDialog by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     var selectedEntryForDetail by remember { mutableStateOf<TransactionEntry?>(null) }
     var selectedImageForViewer by remember { mutableStateOf<Triple<TransactionEntry, String, String>?>(null) }
@@ -587,7 +590,7 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(vertical = AppleSpacing.sm),
-                                    horizontalArrangement = Arrangement.Center
+                                    horizontalArrangement = Arrangement.spacedBy(AppleSpacing.sm, Alignment.CenterHorizontally)
                                 ) {
                                     OutlinedButton(
                                         onClick = { showReanalyzeConfirmDialog = true },
@@ -603,7 +606,26 @@ fun HomeScreen(
                                         )
                                         Spacer(modifier = Modifier.width(AppleSpacing.xs))
                                         Text(
-                                            text = "Re-analyze All Captures",
+                                            text = "Re-analyze All",
+                                            style = AppleTypography.CaptionEmphasized.copy(color = textSecondary)
+                                        )
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { showDeleteMonthDialog = true },
+                                        shape = RoundedCornerShape(AppleRadius.chip),
+                                        border = BorderStroke(1.dp, cardBorder),
+                                        modifier = Modifier.testTag("delete_month_data_button")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CalendarMonth,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = textSecondary
+                                        )
+                                        Spacer(modifier = Modifier.width(AppleSpacing.xs))
+                                        Text(
+                                            text = "Delete a Month's Data",
                                             style = AppleTypography.CaptionEmphasized.copy(color = textSecondary)
                                         )
                                     }
@@ -653,16 +675,19 @@ fun HomeScreen(
 
     // Fullscreen Screenshot Viewer
     selectedImageForViewer?.let { (entry, path, title) ->
+        val initialPage = if (entry.screenshotBPath != null && path == entry.screenshotBPath) 1 else 0
         ImageViewerDialog(
-            filePath = path,
+            screenshotAPath = entry.screenshotAPath,
+            screenshotBPath = entry.screenshotBPath,
+            initialPage = initialPage,
             title = title,
             onDismiss = { selectedImageForViewer = null },
-            onDelete = {
-                viewModel.deleteScreenshotByPath(entry, path)
+            onDelete = { targetPath ->
+                viewModel.deleteScreenshotByPath(entry, targetPath)
                 if (selectedEntryForDetail?.id == entry.id) {
                     selectedEntryForDetail = when {
-                        entry.screenshotAPath == path -> entry.copy(screenshotAPath = null)
-                        entry.screenshotBPath == path -> entry.copy(screenshotBPath = null)
+                        entry.screenshotAPath == targetPath -> entry.copy(screenshotAPath = null)
+                        entry.screenshotBPath == targetPath -> entry.copy(screenshotBPath = null)
                         else -> entry
                     }
                 }
@@ -807,6 +832,13 @@ fun HomeScreen(
                     Text("Done", color = Color.White)
                 }
             }
+        )
+    }
+
+    if (showDeleteMonthDialog) {
+        DeleteMonthDialog(
+            viewModel = viewModel,
+            onDismiss = { showDeleteMonthDialog = false }
         )
     }
 }

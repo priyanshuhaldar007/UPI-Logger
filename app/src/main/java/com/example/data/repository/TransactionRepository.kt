@@ -184,6 +184,32 @@ class TransactionRepository(
     }
 
     /**
+     * Returns the count of transactions whose createdAt falls within the specified range (e.g. a calendar month).
+     */
+    suspend fun getTransactionCountInMonth(startTimeMillis: Long, endTimeMillis: Long): Int = withContext(Dispatchers.IO) {
+        transactionDao.getCountByCreatedAtRange(startTimeMillis, endTimeMillis)
+    }
+
+    /**
+     * Permanently deletes all transactions whose createdAt falls within the specified range,
+     * as well as deleting their attached screenshot image files from internal storage.
+     */
+    suspend fun deleteTransactionsInMonth(startTimeMillis: Long, endTimeMillis: Long): Int = withContext(Dispatchers.IO) {
+        val entries = transactionDao.getTransactionsByCreatedAtRange(startTimeMillis, endTimeMillis)
+        for (entry in entries) {
+            entry.screenshotAPath?.let { path ->
+                val f = File(path)
+                if (f.exists()) f.delete()
+            }
+            entry.screenshotBPath?.let { path ->
+                val f = File(path)
+                if (f.exists()) f.delete()
+            }
+        }
+        transactionDao.deleteByCreatedAtRange(startTimeMillis, endTimeMillis)
+    }
+
+    /**
      * Deletes the Screen A screenshot file from device storage and updates the transaction entry.
      */
     suspend fun deleteScreenshotA(entry: TransactionEntry): TransactionEntry = withContext(Dispatchers.IO) {
