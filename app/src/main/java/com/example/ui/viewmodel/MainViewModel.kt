@@ -120,6 +120,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val activeFilter: StateFlow<ReviewFilter> = _activeFilter.asStateFlow()
 
     // Filtered transaction list
+    private val prefs = application.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+    private val _reduceMotion = MutableStateFlow(prefs.getBoolean("reduce_motion", false))
+    val reduceMotion: StateFlow<Boolean> = _reduceMotion.asStateFlow()
+
+    fun setReduceMotion(enabled: Boolean) {
+        _reduceMotion.value = enabled
+        prefs.edit().putBoolean("reduce_motion", enabled).apply()
+    }
+
     val filteredTransactions: StateFlow<List<TransactionEntry>> = combine(
         allTransactions,
         _searchQuery,

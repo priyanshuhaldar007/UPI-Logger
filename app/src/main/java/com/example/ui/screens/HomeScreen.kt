@@ -6,9 +6,11 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,14 +27,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.CallMerge
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -44,6 +47,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -56,7 +60,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -75,22 +78,39 @@ import com.example.ui.components.EditTransactionDialog
 import com.example.ui.components.ExportCsvDialog
 import com.example.ui.components.ImageViewerDialog
 import com.example.ui.components.ManualMergeDialog
-import com.example.ui.theme.PolishBackground
-import com.example.ui.theme.PolishCardBorder
-import com.example.ui.theme.PolishCardInnerBorder
-import com.example.ui.theme.PolishMergedContainer
-import com.example.ui.theme.PolishMergedText
-import com.example.ui.theme.PolishPrimary
-import com.example.ui.theme.PolishPrimaryBorder
-import com.example.ui.theme.PolishPrimaryContainer
-import com.example.ui.theme.PolishPrimaryDark
-import com.example.ui.theme.PolishSurface
-import com.example.ui.theme.PolishSurfaceVariant
-import com.example.ui.theme.PolishTextMuted
-import com.example.ui.theme.PolishTextPrimary
-import com.example.ui.theme.PolishTextSecondary
-import com.example.ui.theme.PolishWaitingContainer
-import com.example.ui.theme.PolishWaitingText
+import com.example.ui.theme.AppleAccent
+import com.example.ui.theme.AppleAccentLight
+import com.example.ui.theme.AppleBackground
+import com.example.ui.theme.AppleCardBorder
+import com.example.ui.theme.AppleCardInnerBorder
+import com.example.ui.theme.AppleDarkAccent
+import com.example.ui.theme.AppleDarkBackground
+import com.example.ui.theme.AppleDarkCardBorder
+import com.example.ui.theme.AppleDarkSurface
+import com.example.ui.theme.AppleDarkSurfaceElevated
+import com.example.ui.theme.AppleDarkSurfaceTranslucent
+import com.example.ui.theme.AppleDarkTextPrimary
+import com.example.ui.theme.AppleDarkTextSecondary
+import com.example.ui.theme.AppleDarkTextTertiary
+import com.example.ui.theme.AppleMotion
+import com.example.ui.theme.AppleRadius
+import com.example.ui.theme.AppleSpacing
+import com.example.ui.theme.AppleStatusMergedBg
+import com.example.ui.theme.AppleStatusMergedFg
+import com.example.ui.theme.AppleStatusScreenABg
+import com.example.ui.theme.AppleStatusScreenAFg
+import com.example.ui.theme.AppleStatusScreenBBg
+import com.example.ui.theme.AppleStatusScreenBFg
+import com.example.ui.theme.AppleSurface
+import com.example.ui.theme.AppleSurfaceElevated
+import com.example.ui.theme.AppleSurfaceTranslucent
+import com.example.ui.theme.AppleSwipeReview
+import com.example.ui.theme.AppleSwipeUnreview
+import com.example.ui.theme.AppleTextPrimary
+import com.example.ui.theme.AppleTextSecondary
+import com.example.ui.theme.AppleTextTertiary
+import com.example.ui.theme.AppleTypography
+import com.example.ui.theme.LocalReduceMotion
 import com.example.ui.viewmodel.MainViewModel
 import java.io.File
 
@@ -103,6 +123,9 @@ fun HomeScreen(
     onNavigateToExport: () -> Unit
 ) {
     val context = LocalContext.current
+    val darkTheme = isSystemInDarkTheme()
+    val reduceMotion = LocalReduceMotion.current
+
     val totalCount by viewModel.totalCount.collectAsStateWithLifecycle()
     val unreviewedCount by viewModel.unreviewedCount.collectAsStateWithLifecycle()
     val allTransactions by viewModel.allTransactions.collectAsStateWithLifecycle()
@@ -121,100 +144,120 @@ fun HomeScreen(
         allTransactions.take(8)
     }
 
+    val bgColor = if (darkTheme) AppleDarkBackground else AppleBackground
+    val cardSurface = if (darkTheme) AppleDarkSurfaceTranslucent else AppleSurfaceTranslucent
+    val cardElevated = if (darkTheme) AppleDarkSurfaceElevated else AppleSurfaceElevated
+    val cardBorder = if (darkTheme) AppleDarkCardBorder else AppleCardBorder
+    val textPrimary = if (darkTheme) AppleDarkTextPrimary else AppleTextPrimary
+    val textSecondary = if (darkTheme) AppleDarkTextSecondary else AppleTextSecondary
+    val textTertiary = if (darkTheme) AppleDarkTextTertiary else AppleTextTertiary
+    val accentColor = if (darkTheme) AppleDarkAccent else AppleAccent
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(PolishBackground)
+            .background(bgColor)
     ) {
-        // --- Header ---
+        // --- Large Confident Header Treatment ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 16.dp),
+                .padding(
+                    start = AppleSpacing.lg,
+                    end = AppleSpacing.lg,
+                    top = AppleSpacing.xl,
+                    bottom = AppleSpacing.sm
+                ),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
                 Text(
                     text = "UPI Note Logger",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-0.5).sp,
-                        color = PolishPrimaryDark
-                    )
+                    style = AppleTypography.LargeTitle.copy(color = textPrimary)
                 )
-                Text(
-                    text = "Local-only utility",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = PolishTextSecondary
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(if (isServiceRunning) AppleSwipeReview else textTertiary)
                     )
-                )
+                    Spacer(modifier = Modifier.width(AppleSpacing.xxs))
+                    Text(
+                        text = if (isServiceRunning) "Capture Overlay Active" else "Local-Only Financial Utility",
+                        style = AppleTypography.CaptionEmphasized.copy(
+                            color = if (isServiceRunning) AppleSwipeReview else textSecondary
+                        )
+                    )
+                }
             }
 
-            // Circular header action badge (Simulate/Info)
-            Box(
+            // Discreet Test Sample Generator Button
+            Surface(
+                shape = CircleShape,
+                color = cardElevated,
+                border = BorderStroke(1.dp, cardBorder),
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(PolishSurface)
-                    .border(1.dp, PolishCardBorder, CircleShape)
-                    .clickable {
-                        viewModel.insertSamplePair(context)
-                    }
-                    .testTag("header_sample_button"),
-                contentAlignment = Alignment.Center
+                    .size(42.dp)
+                    .clickable { viewModel.insertSamplePair(context) }
+                    .testTag("header_sample_button")
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .border(2.dp, PolishTextSecondary, RoundedCornerShape(4.dp))
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Generate Test Capture",
+                        tint = textSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
 
-        // Main content area
+        // --- Main Screen Content ---
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = AppleSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(AppleSpacing.sm)
         ) {
-            // Permission Banner (if needed)
+            // Overlay Permission Warning Banner (if permission missing)
             if (!hasOverlayPermission) {
-                Card(
+                Surface(
+                    shape = RoundedCornerShape(AppleRadius.card),
+                    color = if (darkTheme) Color(0xFF331B1B) else Color(0xFFFFECEB),
+                    border = BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.3f)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("overlay_permission_card"),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = PolishWaitingContainer),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFB4AB))
+                        .testTag("overlay_permission_card")
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(AppleSpacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
-                            tint = PolishWaitingText,
+                            tint = Color(0xFFFF3B30),
                             modifier = Modifier.size(24.dp)
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(AppleSpacing.sm))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Overlay Permission Required",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = PolishWaitingText
+                                style = AppleTypography.Subtitle.copy(fontSize = 15.sp),
+                                color = textPrimary
                             )
                             Text(
-                                text = "Enable to show floating button over your UPI app.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = PolishTextPrimary
+                                text = "Required to display floating capture buttons over super.money.",
+                                style = AppleTypography.Caption,
+                                color = textSecondary
                             )
                         }
-                        TextButton(
+                        Button(
                             onClick = {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                     val intent = Intent(
@@ -223,51 +266,49 @@ fun HomeScreen(
                                     )
                                     context.startActivity(intent)
                                 }
-                            }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3B30)),
+                            shape = RoundedCornerShape(AppleRadius.chip)
                         ) {
-                            Text("Enable", color = PolishWaitingText, fontWeight = FontWeight.Bold)
+                            Text("Enable", style = AppleTypography.CaptionEmphasized, color = Color.White)
                         }
                     }
                 }
             }
 
-            // --- Capture Session Hero Card ---
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(PolishPrimaryContainer)
-                    .border(1.dp, PolishPrimaryBorder, RoundedCornerShape(28.dp))
-                    .padding(20.dp)
+            // --- HERO: Primary Capture Action (Capsule Button & Status Card) ---
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(AppleRadius.card),
+                colors = CardDefaults.cardColors(containerColor = cardSurface),
+                border = BorderStroke(1.dp, cardBorder)
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(AppleSpacing.md)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
                             Text(
-                                text = "CAPTURE SESSION",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.2.sp,
-                                    color = PolishPrimaryDark.copy(alpha = 0.7f)
+                                text = "SCREEN CAPTURE",
+                                style = AppleTypography.CaptionEmphasized.copy(
+                                    letterSpacing = 1.sp,
+                                    color = accentColor
                                 )
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = if (isServiceRunning) "Service is Active" else "Service is Inactive",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = PolishPrimaryDark
-                                )
+                                text = if (isServiceRunning) "Overlay Active" else "Ready to Record",
+                                style = AppleTypography.Title.copy(color = textPrimary)
                             )
                         }
 
-                        // Modern Custom Switch / Pill Toggle
+                        // iOS-style Refined Switch Component
                         Switch(
                             checked = isServiceRunning,
                             onCheckedChange = { start ->
@@ -290,201 +331,201 @@ fun HomeScreen(
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = PolishPrimary,
+                                checkedTrackColor = AppleSwipeReview,
                                 uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color(0xFFBAC7D5)
+                                uncheckedTrackColor = if (darkTheme) Color(0xFF39393D) else Color(0xFFE5E5EA)
                             ),
                             modifier = Modifier.testTag("capture_session_switch")
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(AppleSpacing.xs))
 
                     Text(
                         text = if (isServiceRunning) {
-                            "Floating capture button is active! Open super.money, tap it on Screen A, view more, and tap on Screen B."
+                            "Tap 'A' on the payment receipt, view transaction details, and tap 'B' to merge the note."
                         } else {
-                            "Toggle to enable the floating capture button over your UPI app."
+                            "Launch floating buttons over your screen to extract note and transaction details in two taps."
                         },
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 13.sp,
-                            color = Color(0xFF003355),
-                            lineHeight = 18.sp
-                        )
+                        style = AppleTypography.Body.copy(color = textSecondary)
                     )
+
+                    Spacer(modifier = Modifier.height(AppleSpacing.md))
+
+                    // Prominent Capsule Primary Button
+                    Button(
+                        onClick = {
+                            if (isServiceRunning) {
+                                onStopCaptureSession()
+                            } else {
+                                hasOverlayPermission = viewModel.hasOverlayPermission(context)
+                                if (hasOverlayPermission) {
+                                    onStartCaptureSession()
+                                } else {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        val intent = Intent(
+                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                            Uri.parse("package:${context.packageName}")
+                                        )
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("start_capture_button"),
+                        shape = RoundedCornerShape(AppleRadius.sheet),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isServiceRunning) Color(0xFFFF3B30) else accentColor
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (isServiceRunning) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(AppleSpacing.xs))
+                        Text(
+                            text = if (isServiceRunning) "Stop Capture Session" else "Start Capture Session",
+                            style = AppleTypography.BodyEmphasized.copy(color = Color.White)
+                        )
+                    }
                 }
             }
 
-            // --- Stats 3-Column Row ---
+            // --- Unreviewed Status Pill & Glanceable Stats Row ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(AppleSpacing.xs)
             ) {
-                // Pending Card
-                Card(
+                // Glanceable Unreviewed Pill / Card
+                Surface(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.3f)
                         .clickable { onNavigateToReview() }
                         .testTag("stat_pending_card"),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = PolishSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PolishCardBorder)
+                    shape = RoundedCornerShape(AppleRadius.card),
+                    color = if (unreviewedCount > 0) {
+                        if (darkTheme) Color(0xFF2C2216) else Color(0xFFFFF7ED)
+                    } else cardSurface,
+                    border = BorderStroke(
+                        1.dp,
+                        if (unreviewedCount > 0) AppleSwipeUnreview.copy(alpha = 0.4f) else cardBorder
+                    )
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp, horizontal = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .padding(horizontal = AppleSpacing.md, vertical = AppleSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "$unreviewedCount",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Light,
-                                color = PolishPrimary
+                        Column {
+                            Text(
+                                text = "$unreviewedCount",
+                                style = AppleTypography.NumericHero.copy(
+                                    color = if (unreviewedCount > 0) AppleSwipeUnreview else textSecondary
+                                )
                             )
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Pending",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = PolishTextSecondary
+                            Text(
+                                text = "Needs Review",
+                                style = AppleTypography.CaptionEmphasized.copy(
+                                    color = if (unreviewedCount > 0) AppleSwipeUnreview else textSecondary
+                                )
                             )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = if (unreviewedCount > 0) AppleSwipeUnreview else textTertiary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
 
-                // Total Card
-                Card(
+                // Total Entries Pill
+                Surface(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onNavigateToReview() }
                         .testTag("stat_total_card"),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = PolishSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PolishCardBorder)
+                    shape = RoundedCornerShape(AppleRadius.card),
+                    color = cardSurface,
+                    border = BorderStroke(1.dp, cardBorder)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp, horizontal = 10.dp),
+                            .padding(horizontal = AppleSpacing.md, vertical = AppleSpacing.sm),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = "$totalCount",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Light,
-                                color = PolishTextSecondary
-                            )
+                            style = AppleTypography.NumericHero.copy(color = textPrimary)
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Total",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = PolishTextSecondary
-                            )
+                            text = "Total Records",
+                            style = AppleTypography.CaptionEmphasized.copy(color = textSecondary)
                         )
                     }
                 }
 
-                // Export Card
-                Card(
+                // Quick CSV Export Pill
+                Surface(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onNavigateToExport() }
                         .testTag("stat_export_card"),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = PolishSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PolishCardBorder)
+                    shape = RoundedCornerShape(AppleRadius.card),
+                    color = cardSurface,
+                    border = BorderStroke(1.dp, cardBorder)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 16.dp, horizontal = 10.dp),
+                            .padding(horizontal = AppleSpacing.md, vertical = AppleSpacing.sm),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = "CSV",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Light,
-                                color = PolishMergedText
-                            )
+                        Icon(
+                            imageVector = Icons.Default.FileDownload,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(24.dp)
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Export",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = PolishTextSecondary
-                            )
+                            text = "Export CSV",
+                            style = AppleTypography.CaptionEmphasized.copy(color = accentColor)
                         )
                     }
                 }
             }
 
-            // --- Re-analyze All Captures Button ---
-            OutlinedButton(
-                onClick = { showReanalyzeConfirmDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-                    .testTag("reanalyze_all_captures_button"),
-                shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PolishCardBorder),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = PolishSurface,
-                    contentColor = PolishPrimary
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = PolishPrimary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Re-analyze All Captures",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        color = PolishPrimary
-                    )
-                )
-            }
-
             // --- Recent Activity Section Container ---
-            Box(
+            Surface(
+                shape = RoundedCornerShape(topStart = AppleRadius.sheet, topEnd = AppleRadius.sheet),
+                color = cardSurface,
+                border = BorderStroke(1.dp, cardBorder),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                    .background(PolishSurface)
-                    .border(
-                        width = 1.dp,
-                        color = PolishCardBorder,
-                        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
-                    )
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // Section header
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                            .padding(horizontal = AppleSpacing.md, vertical = AppleSpacing.sm),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "Recent Activity",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Medium,
-                                color = PolishTextPrimary
-                            )
+                            style = AppleTypography.Subtitle.copy(color = textPrimary)
                         )
 
                         TextButton(
@@ -492,38 +533,32 @@ fun HomeScreen(
                             modifier = Modifier.testTag("home_review_all_button")
                         ) {
                             Text(
-                                text = "Review All",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = PolishPrimary
-                                )
+                                text = "View All",
+                                style = AppleTypography.CaptionEmphasized.copy(color = accentColor)
                             )
                         }
                     }
 
-                    // Activity Items list
                     if (recentTransactions.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .padding(24.dp),
+                                .padding(AppleSpacing.lg),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(AppleSpacing.xs)
+                            ) {
                                 Text(
-                                    text = "No captured transactions yet",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = PolishTextSecondary
+                                    text = "No Captures Recorded Yet",
+                                    style = AppleTypography.Subtitle.copy(color = textPrimary)
                                 )
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Button(
-                                    onClick = { viewModel.insertSamplePair(context) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = PolishPrimary),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("Create Test Sample Pair")
-                                }
+                                Text(
+                                    text = "Start a capture session to record transaction notes effortlessly.",
+                                    style = AppleTypography.Caption.copy(color = textSecondary)
+                                )
                             }
                         }
                     } else {
@@ -531,20 +566,49 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                .padding(horizontal = AppleSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(AppleSpacing.xs)
                         ) {
                             items(recentTransactions, key = { it.id }) { item ->
-                                RecentActivityItemCard(
+                                AppleRecentActivityRow(
                                     entry = item,
+                                    darkTheme = darkTheme,
                                     onClick = { selectedEntryForDetail = item },
                                     onImageClick = { path, title ->
                                         selectedImageForViewer = Triple(item, path, title)
                                     }
                                 )
                             }
+
+                            // Quiet Maintenance Action at Bottom of Scroll
                             item {
-                                Spacer(modifier = Modifier.height(80.dp))
+                                Spacer(modifier = Modifier.height(AppleSpacing.sm))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = AppleSpacing.sm),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { showReanalyzeConfirmDialog = true },
+                                        shape = RoundedCornerShape(AppleRadius.chip),
+                                        border = BorderStroke(1.dp, cardBorder),
+                                        modifier = Modifier.testTag("reanalyze_all_captures_button")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Refresh,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = textSecondary
+                                        )
+                                        Spacer(modifier = Modifier.width(AppleSpacing.xs))
+                                        Text(
+                                            text = "Re-analyze All Captures",
+                                            style = AppleTypography.CaptionEmphasized.copy(color = textSecondary)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(AppleSpacing.xl))
                             }
                         }
                     }
@@ -553,7 +617,7 @@ fun HomeScreen(
         }
     }
 
-    // Detail / Edit Dialog
+    // Detail / In-place Editor Modal
     selectedEntryForDetail?.let { entry ->
         EditTransactionDialog(
             entry = entry,
@@ -633,21 +697,21 @@ fun HomeScreen(
         )
     }
 
-    // Re-analyze Confirmation Dialog
+    // Re-analyze Confirmation Dialog (Apple Dialog Styling)
     if (showReanalyzeConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showReanalyzeConfirmDialog = false },
+            shape = RoundedCornerShape(AppleRadius.sheet),
             title = {
                 Text(
                     text = "Re-analyze All Captures?",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = AppleTypography.Title.copy(color = textPrimary)
                 )
             },
             text = {
                 Text(
-                    text = "This will re-run OCR and parsing on every stored capture using the latest crop areas and parser rules, and retroactively merge any leftover unpaired entries. This may take a while for large datasets and re-reads stored screenshots.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PolishTextSecondary
+                    text = "This will re-run OCR and parsing on every stored capture using the latest crop areas and parser rules, and retroactively merge any leftover unpaired entries.",
+                    style = AppleTypography.Body.copy(color = textSecondary)
                 )
             },
             confirmButton = {
@@ -656,15 +720,15 @@ fun HomeScreen(
                         showReanalyzeConfirmDialog = false
                         viewModel.reprocessAllEntries(context)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PolishPrimary),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                    shape = RoundedCornerShape(AppleRadius.chip)
                 ) {
-                    Text("Re-analyze")
+                    Text("Re-analyze", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showReanalyzeConfirmDialog = false }) {
-                    Text("Cancel", color = PolishTextSecondary)
+                    Text("Cancel", color = textSecondary)
                 }
             }
         )
@@ -673,51 +737,44 @@ fun HomeScreen(
     // Re-analyze Progress Dialog
     if (reprocessProgress.isReprocessing) {
         AlertDialog(
-            onDismissRequest = { /* Cannot dismiss while running */ },
+            onDismissRequest = { /* Modal */ },
+            shape = RoundedCornerShape(AppleRadius.sheet),
             properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
             title = {
                 Text(
-                    text = "Re-analyzing Captures...",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    text = "Re-analyzing Captures…",
+                    style = AppleTypography.Title.copy(color = textPrimary)
                 )
             },
             text = {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(vertical = AppleSpacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(AppleSpacing.sm)
                 ) {
                     val progressLabel = if (reprocessProgress.total > 0) {
-                        "Reprocessing ${reprocessProgress.current} of ${reprocessProgress.total}"
+                        "Processing ${reprocessProgress.current} of ${reprocessProgress.total}"
                     } else {
-                        "Preparing captures..."
+                        "Preparing captures…"
                     }
                     Text(
                         text = progressLabel,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            color = PolishTextPrimary
-                        )
+                        style = AppleTypography.Body.copy(color = textSecondary)
                     )
-                    if (reprocessProgress.total > 0) {
-                        LinearProgressIndicator(
-                            progress = { reprocessProgress.current.toFloat() / reprocessProgress.total.coerceAtLeast(1) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp),
-                            color = PolishPrimary,
-                            trackColor = PolishPrimaryContainer
-                        )
-                    } else {
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp),
-                            color = PolishPrimary,
-                            trackColor = PolishPrimaryContainer
-                        )
-                    }
+                    LinearProgressIndicator(
+                        progress = {
+                            if (reprocessProgress.total > 0) {
+                                reprocessProgress.current.toFloat() / reprocessProgress.total.coerceAtLeast(1)
+                            } else 0f
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = accentColor,
+                        trackColor = cardBorder
+                    )
                 }
             },
             confirmButton = {}
@@ -728,58 +785,68 @@ fun HomeScreen(
     reprocessSummary?.let { summary ->
         AlertDialog(
             onDismissRequest = { viewModel.clearReprocessSummary() },
+            shape = RoundedCornerShape(AppleRadius.sheet),
             title = {
                 Text(
                     text = "Re-analysis Complete",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = AppleTypography.Title.copy(color = textPrimary)
                 )
             },
             text = {
                 Text(
                     text = "Reprocessed ${summary.totalEntries} entries (${summary.reprocessedFromImage} from saved images, ${summary.reprocessedFromTextOnly} from stored text only, ${summary.missingScreenshotFiles} screenshots were missing). Merged ${summary.newlyMergedPairs} additional pairs.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = PolishTextPrimary
+                    style = AppleTypography.Body.copy(color = textSecondary)
                 )
             },
             confirmButton = {
                 Button(
                     onClick = { viewModel.clearReprocessSummary() },
-                    colors = ButtonDefaults.buttonColors(containerColor = PolishPrimary),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                    shape = RoundedCornerShape(AppleRadius.chip)
                 ) {
-                    Text("Done")
+                    Text("Done", color = Color.White)
                 }
             }
         )
     }
 }
 
+/**
+ * Apple-style Recent Activity Row with quiet badge and clean typography.
+ */
 @Composable
-fun RecentActivityItemCard(
+fun AppleRecentActivityRow(
     entry: TransactionEntry,
+    darkTheme: Boolean,
     onClick: () -> Unit,
     onImageClick: (String, String) -> Unit
 ) {
     val context = LocalContext.current
     val screenshotFile = (entry.screenshotBPath ?: entry.screenshotAPath)?.let { File(it) }
 
+    val rowBg = if (darkTheme) AppleDarkSurfaceElevated else AppleBackground
+    val borderCol = if (darkTheme) AppleDarkCardBorder else AppleCardBorder
+    val textPri = if (darkTheme) AppleDarkTextPrimary else AppleTextPrimary
+    val textSec = if (darkTheme) AppleDarkTextSecondary else AppleTextSecondary
+    val textTer = if (darkTheme) AppleDarkTextTertiary else AppleTextTertiary
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFF7F9FB))
-            .border(1.dp, PolishCardInnerBorder, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(AppleRadius.card))
+            .background(rowBg)
+            .border(1.dp, borderCol, RoundedCornerShape(AppleRadius.card))
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(AppleSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(AppleSpacing.sm)
     ) {
         // Thumbnail Image
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFDEE3EB))
+                .size(52.dp)
+                .clip(RoundedCornerShape(AppleRadius.chip))
+                .background(borderCol)
                 .clickable {
                     val path = entry.screenshotBPath ?: entry.screenshotAPath
                     if (path != null) {
@@ -799,104 +866,74 @@ fun RecentActivityItemCard(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF74777F).copy(alpha = 0.25f))
+                Icon(
+                    imageVector = Icons.Default.Layers,
+                    contentDescription = null,
+                    tint = textTer,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
 
-        // Center Content
+        // Center Details
         Column(modifier = Modifier.weight(1f)) {
-            // Amount & Status Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val displayAmount = if (entry.amount.isNotEmpty()) "₹${entry.amount}" else "₹ --"
+                val displayAmount = if (entry.amount.isNotEmpty()) {
+                    if (entry.amount.startsWith("₹")) entry.amount else "₹${entry.amount}"
+                } else "₹ --"
+
                 Text(
                     text = displayAmount,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = PolishTextPrimary
-                    )
+                    style = AppleTypography.NumericHero.copy(fontSize = 18.sp, color = textPri)
                 )
 
-                if (entry.isMerged) {
-                    Box(
-                        modifier = Modifier
-                            .background(PolishMergedContainer, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "MERGED",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PolishMergedText
-                            )
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFFDEE3EB), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "WAITING",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PolishTextSecondary
-                            )
-                        )
-                    }
+                // Quiet status badge
+                val (badgeBg, badgeFg, badgeText) = when {
+                    entry.isMerged -> Triple(AppleStatusMergedBg, AppleStatusMergedFg, "Merged")
+                    entry.sourceScreenType == "SCREEN_B" -> Triple(AppleStatusScreenBBg, AppleStatusScreenBFg, "Screen B")
+                    else -> Triple(AppleStatusScreenABg, AppleStatusScreenAFg, "Screen A")
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(AppleRadius.chip),
+                    color = badgeBg
+                ) {
+                    Text(
+                        text = badgeText,
+                        style = AppleTypography.CaptionEmphasized.copy(color = badgeFg, fontSize = 10.sp),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            // Payee / Reference
             val subtitle = when {
                 entry.payee.isNotEmpty() -> "Paid to: ${entry.payee}"
-                entry.vpa.isNotEmpty() -> "Paid to: ${entry.vpa}"
+                entry.vpa.isNotEmpty() -> "VPA: ${entry.vpa}"
                 entry.referenceNumber.isNotEmpty() -> "Ref: ${entry.referenceNumber}"
                 else -> "Captured Screen"
             }
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 12.sp,
-                    color = PolishTextSecondary
-                ),
+                style = AppleTypography.Caption.copy(color = textSec),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Note (Italic) or Missing Warning
             if (entry.note.isNotEmpty()) {
                 Text(
                     text = "\"${entry.note}\"",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 11.sp,
+                    style = AppleTypography.CaptionEmphasized.copy(
                         fontStyle = FontStyle.Italic,
-                        color = PolishTextMuted
+                        color = textSec
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            } else if (!entry.isMerged) {
-                Text(
-                    text = "Missing Screen B (Note)",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 10.sp,
-                        color = PolishWaitingText
-                    ),
                     modifier = Modifier.padding(top = 2.dp)
                 )
             }

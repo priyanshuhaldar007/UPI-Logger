@@ -1,5 +1,6 @@
 package com.example.service
 
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -33,6 +34,8 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -71,6 +74,11 @@ class CaptureOverlayService : Service() {
     private var screenWidth = 1080
     private var screenHeight = 1920
     private var screenDensity = 420
+
+    private var overlayButtonA: View? = null
+    private var overlayButtonB: View? = null
+    private var overlayTextA: TextView? = null
+    private var overlayTextB: TextView? = null
 
     private var isCapturing = false
 
@@ -287,38 +295,39 @@ class CaptureOverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = 30
+            x = 24
             y = screenHeight / 3
         }
 
-        // Create overlay container: pill shape containing Capture button and Close button
+        val density = resources.displayMetrics.density
+
+        // Create overlay container: Apple translucent pill shape
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(12, 10, 14, 10)
+            setPadding((12 * density).toInt(), (8 * density).toInt(), (14 * density).toInt(), (8 * density).toInt())
 
             val backgroundDrawable = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 100f
-                setColor(Color.parseColor("#F2001D36")) // Deep Navy with 95% opacity
-                setStroke(3, Color.parseColor("#A8C8FB")) // Soft Blue border
+                setColor(Color.argb(230, 28, 28, 30)) // Apple Dark Translucent Surface
+                setStroke((1 * density).toInt(), Color.argb(60, 255, 255, 255)) // Subtle glass border
             }
             background = backgroundDrawable
-            elevation = 16f
+            elevation = 20f
         }
 
         // Two circular capture buttons labeled "A" and "B" placed side by side
-        val density = resources.displayMetrics.density
-        val btnSize = (38 * density).toInt()
+        val btnSize = (40 * density).toInt()
 
         val buttonA = FrameLayout(this).apply {
             val circleDrawable = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#0061A4")) // Professional Polish Brand Blue
+                setColor(Color.parseColor("#007AFF")) // Apple Blue Accent
             }
             background = circleDrawable
             layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
-                rightMargin = (6 * density).toInt()
+                rightMargin = (8 * density).toInt()
             }
 
             val textA = TextView(this@CaptureOverlayService).apply {
@@ -333,16 +342,18 @@ class CaptureOverlayService : Service() {
                 )
             }
             addView(textA)
+            overlayTextA = textA
         }
+        overlayButtonA = buttonA
 
         val buttonB = FrameLayout(this).apply {
             val circleDrawable = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#0061A4")) // Professional Polish Brand Blue
+                setColor(Color.parseColor("#007AFF")) // Apple Blue Accent
             }
             background = circleDrawable
             layoutParams = LinearLayout.LayoutParams(btnSize, btnSize).apply {
-                rightMargin = (10 * density).toInt()
+                rightMargin = (12 * density).toInt()
             }
 
             val textB = TextView(this@CaptureOverlayService).apply {
@@ -357,22 +368,24 @@ class CaptureOverlayService : Service() {
                 )
             }
             addView(textB)
+            overlayTextB = textB
         }
+        overlayButtonB = buttonB
 
         // Small Stop Button (X)
         val stopButton = FrameLayout(this).apply {
             val stopCircle = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#003355")) // Navy accent
+                setColor(Color.argb(100, 142, 142, 147)) // Apple subtle secondary circle
             }
             background = stopCircle
-            val closeSize = (32 * resources.displayMetrics.density).toInt()
+            val closeSize = (30 * density).toInt()
             layoutParams = LinearLayout.LayoutParams(closeSize, closeSize)
 
             val closeIcon = TextView(this@CaptureOverlayService).apply {
                 text = "✕"
-                setTextColor(Color.parseColor("#D1E4FF"))
-                textSize = 14f
+                setTextColor(Color.WHITE)
+                textSize = 13f
                 gravity = Gravity.CENTER
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
@@ -390,12 +403,13 @@ class CaptureOverlayService : Service() {
         container.addView(buttonB)
         container.addView(stopButton)
 
-        // Drag & Click handler for the container and capture buttons
+        // Physical spring motion, rubber-band drag, and edge-snapping
         var initialX = 0
         var initialY = 0
         var initialTouchX = 0f
         var initialTouchY = 0f
         var isDragging = false
+        var activePressedButton: View? = null
 
         val hitRectA = Rect()
         val hitRectB = Rect()
@@ -408,21 +422,82 @@ class CaptureOverlayService : Service() {
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
                     isDragging = false
+
+                    buttonA.getHitRect(hitRectA)
+                    buttonB.getHitRect(hitRectB)
+                    val touchX = event.x.toInt()
+                    val touchY = event.y.toInt()
+
+                    activePressedButton = when {
+                        hitRectA.contains(touchX, touchY) -> buttonA
+                        hitRectB.contains(touchX, touchY) -> buttonB
+                        else -> null
+                    }
+                    compressButton(activePressedButton)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = (event.rawX - initialTouchX).toInt()
+                    val rawDx = (event.rawX - initialTouchX).toInt()
                     val dy = (event.rawY - initialTouchY).toInt()
-                    if (abs(dx) > 12 || abs(dy) > 12) {
-                        isDragging = true
-                        params.x = initialX + dx
+
+                    if (abs(rawDx) > 10 || abs(dy) > 10) {
+                        if (!isDragging) {
+                            isDragging = true
+                            releaseButton(activePressedButton)
+                            activePressedButton = null
+                        }
+
+                        // Rubber-band resistance near screen edges
+                        val proposedX = initialX + rawDx
+                        val edgeThreshold = (16 * density).toInt()
+                        val containerWidth = container.width.coerceAtLeast(1)
+                        val maxEdge = (screenWidth - containerWidth - edgeThreshold).coerceAtLeast(edgeThreshold)
+
+                        val dampedX = when {
+                            proposedX < edgeThreshold -> (edgeThreshold + (proposedX - edgeThreshold) * 0.35f).toInt()
+                            proposedX > maxEdge -> (maxEdge + (proposedX - maxEdge) * 0.35f).toInt()
+                            else -> proposedX
+                        }
+
+                        params.x = dampedX
                         params.y = initialY + dy
                         windowManager?.updateViewLayout(container, params)
                     }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (!isDragging) {
+                    releaseButton(activePressedButton)
+                    activePressedButton = null
+
+                    if (isDragging) {
+                        // Spring-snap to nearest horizontal edge
+                        val containerWidth = container.width.coerceAtLeast(1)
+                        val edgeMargin = (12 * density).toInt()
+                        val targetX = if (params.x + containerWidth / 2 < screenWidth / 2) {
+                            edgeMargin
+                        } else {
+                            screenWidth - containerWidth - edgeMargin
+                        }
+                        val minY = (40 * density).toInt()
+                        val maxY = (screenHeight - 140 * density).toInt()
+                        val targetY = params.y.coerceIn(minY, maxY)
+
+                        val startX = params.x
+                        val startY = params.y
+
+                        ValueAnimator.ofFloat(0f, 1f).apply {
+                            duration = 280
+                            interpolator = OvershootInterpolator(1.2f)
+                            addUpdateListener { animator ->
+                                val frac = animator.animatedValue as Float
+                                params.x = (startX + (targetX - startX) * frac).toInt()
+                                params.y = (startY + (targetY - startY) * frac).toInt()
+                                windowManager?.updateViewLayout(container, params)
+                            }
+                            start()
+                        }
+                    } else {
+                        // Handle button clicks
                         buttonA.getHitRect(hitRectA)
                         buttonB.getHitRect(hitRectB)
                         val touchX = event.x.toInt()
@@ -436,12 +511,62 @@ class CaptureOverlayService : Service() {
                     }
                     true
                 }
+                MotionEvent.ACTION_CANCEL -> {
+                    releaseButton(activePressedButton)
+                    activePressedButton = null
+                    true
+                }
                 else -> false
             }
         }
 
         overlayLayout = container
         windowManager?.addView(container, params)
+    }
+
+    private fun compressButton(button: View?) {
+        button?.animate()
+            ?.scaleX(0.88f)
+            ?.scaleY(0.88f)
+            ?.setDuration(90)
+            ?.setInterpolator(DecelerateInterpolator())
+            ?.start()
+    }
+
+    private fun releaseButton(button: View?) {
+        button?.animate()
+            ?.scaleX(1.0f)
+            ?.scaleY(1.0f)
+            ?.setDuration(180)
+            ?.setInterpolator(OvershootInterpolator(1.8f))
+            ?.start()
+    }
+
+    private fun showButtonSuccessAnimation(isScreenA: Boolean) {
+        val targetButton = if (isScreenA) overlayButtonA else overlayButtonB
+        val targetText = if (isScreenA) overlayTextA else overlayTextB
+        val defaultText = if (isScreenA) "A" else "B"
+
+        targetText?.text = "✓"
+        (targetButton?.background as? GradientDrawable)?.setColor(Color.parseColor("#34C759")) // Apple green
+        targetButton?.animate()
+            ?.scaleX(1.18f)
+            ?.scaleY(1.18f)
+            ?.setDuration(150)
+            ?.setInterpolator(OvershootInterpolator(2.2f))
+            ?.withEndAction {
+                targetButton.postDelayed({
+                    targetText?.text = defaultText
+                    (targetButton.background as? GradientDrawable)?.setColor(Color.parseColor("#007AFF"))
+                    targetButton.animate()
+                        ?.scaleX(1.0f)
+                        ?.scaleY(1.0f)
+                        ?.setDuration(180)
+                        ?.setInterpolator(DecelerateInterpolator())
+                        ?.start()
+                }, 650)
+            }
+            ?.start()
     }
 
     /**
@@ -536,25 +661,8 @@ class CaptureOverlayService : Service() {
                     )
                 }
 
-                // Feedback message
-                val feedback = when {
-                    isAutoMerged -> {
-                        val refPart = if (entry.referenceNumber.isNotEmpty()) " #${entry.referenceNumber.takeLast(4)}" else ""
-                        val notePart = if (entry.note.isNotEmpty()) " [Note: ${entry.note.take(15)}]" else ""
-                        "✓ Merged with Ref$refPart$notePart"
-                    }
-                    entry.note.isNotEmpty() -> {
-                        "✓ Captured Note: \"${entry.note.take(20)}\""
-                    }
-                    entry.amount.isNotEmpty() -> {
-                        "✓ Captured Amount: ${entry.amount}"
-                    }
-                    else -> {
-                        "✓ Captured Screenshot saved"
-                    }
-                }
-
-                Toast.makeText(applicationContext, feedback, Toast.LENGTH_SHORT).show()
+                // In-button spring-based visual pulse and checkmark animation confirmation
+                showButtonSuccessAnimation(expectedScreenType == "SCREEN_A")
             } catch (e: Exception) {
                 Log.e(TAG, "Error in capture flow: ${e.message}", e)
                 Toast.makeText(applicationContext, "Capture error: ${e.message}", Toast.LENGTH_SHORT).show()
