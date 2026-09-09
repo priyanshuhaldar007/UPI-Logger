@@ -1,0 +1,82 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Squircle Background Shadow -->
+    <path
+        android:fillColor="#0A000000"
+        android:pathData="M24,10 L84,10 A16,16 0 0 1 100,26 L100,86 A16,16 0 0 1 84,102 L24,102 A16,16 0 0 1 8,86 L8,26 A16,16 0 0 1 24,10 Z" />
+
+    <!-- Main White Squircle Container -->
+    <path
+        android:fillColor="#FAFAFC"
+        android:strokeColor="#E8EAED"
+        android:strokeWidth="1"
+        android:pathData="M24,8 L84,8 A16,16 0 0 1 100,24 L100,84 A16,16 0 0 1 84,100 L24,100 A16,16 0 0 1 8,84 L8,24 A16,16 0 0 1 24,8 Z" />
+
+    <!-- Spreadsheet / CSV Document Card (Card Shadow) -->
+    <path
+        android:fillColor="#150C4A6E"
+        android:pathData="M24,24 L74,24 L88,38 L88,80 A8,8 0 0 1 80,88 L24,88 A8,8 0 0 1 16,80 L16,32 A8,8 0 0 1 24,24 Z" />
+
+    <!-- Card Main Body -->
+    <path
+        android:fillColor="#F0F9FF"
+        android:strokeColor="#BAE6FD"
+        android:strokeWidth="1"
+        android:pathData="M24,22 L74,22 L88,36 L88,78 A8,8 0 0 1 80,86 L24,86 A8,8 0 0 1 16,78 L16,30 A8,8 0 0 1 24,22 Z" />
+
+    <!-- Corner Fold -->
+    <path
+        android:fillColor="#7DD3FC"
+        android:pathData="M74,22 L74,33 A3,3 0 0 0 77,36 L88,36 Z" />
+
+    <!-- Table Header Bar -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M22,38 L82,38 A2,2 0 0 1 84,40 L84,45 A2,2 0 0 1 82,47 L22,47 A2,2 0 0 1 20,45 L20,40 A2,2 0 0 1 22,38 Z" />
+
+    <!-- Table Row 1 -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M22,52 L42,52 A1.5,1.5 0 0 1 43.5,53.5 A1.5,1.5 0 0 1 42,55 L22,55 A1.5,1.5 0 0 1 20.5,53.5 A1.5,1.5 0 0 1 22,52 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M48,52 L62,52 A1.5,1.5 0 0 1 63.5,53.5 A1.5,1.5 0 0 1 62,55 L48,55 A1.5,1.5 0 0 1 46.5,53.5 A1.5,1.5 0 0 1 48,52 Z" />
+
+    <!-- Table Row 2 -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M22,60 L38,60 A1.5,1.5 0 0 1 39.5,61.5 A1.5,1.5 0 0 1 38,63 L22,63 A1.5,1.5 0 0 1 20.5,61.5 A1.5,1.5 0 0 1 22,60 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M48,60 L60,60 A1.5,1.5 0 0 1 61.5,61.5 A1.5,1.5 0 0 1 60,63 L48,63 A1.5,1.5 0 0 1 46.5,61.5 A1.5,1.5 0 0 1 48,60 Z" />
+
+    <!-- Table Row 3 -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M22,68 L44,68 A1.5,1.5 0 0 1 45.5,69.5 A1.5,1.5 0 0 1 44,71 L22,71 A1.5,1.5 0 0 1 20.5,69.5 A1.5,1.5 0 0 1 22,68 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M48,68 L56,68 A1.5,1.5 0 0 1 57.5,69.5 A1.5,1.5 0 0 1 56,71 L48,71 A1.5,1.5 0 0 1 46.5,69.5 A1.5,1.5 0 0 1 48,68 Z" />
+
+    <!-- Export Action Badge (Deep Blue Circle with Download Arrow) -->
+    <!-- Shadow -->
+    <path
+        android:fillColor="#250369A1"
+        android:pathData="M74,58 A15,15 0 1 1 74,88 A15,15 0 1 1 74,58 Z" />
+    <!-- Badge Body -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M74,56 A15,15 0 1 1 74,86 A15,15 0 1 1 74,56 Z" />
+    <!-- White Download Arrow -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M74,63 L74,77 M68,72 L74,78 L80,72 M67,81 L81,81" />
+
+</vector>

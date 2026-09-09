@@ -107,6 +107,8 @@ import com.example.ui.theme.AppleSurface
 import com.example.ui.theme.AppleSurfaceElevated
 import com.example.ui.theme.AppleSurfaceTranslucent
 import com.example.ui.theme.AppleSwipeReview
+import com.example.ui.components.AppVisualMode
+import com.example.ui.components.ModeIcon
 import com.example.ui.theme.AppleSwipeUnreview
 import com.example.ui.theme.AppleTextPrimary
 import com.example.ui.theme.AppleTextSecondary
@@ -174,26 +176,32 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = "UPI Note Logger",
-                    style = AppleTypography.LargeTitle.copy(color = textPrimary)
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(if (isServiceRunning) AppleSwipeReview else textTertiary)
-                    )
-                    Spacer(modifier = Modifier.width(AppleSpacing.xxs))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppleSpacing.sm)
+            ) {
+                ModeIcon(mode = AppVisualMode.COMBINED, size = 44.dp)
+                Column {
                     Text(
-                        text = if (isServiceRunning) "Capture Overlay Active" else "Local-Only Financial Utility",
-                        style = AppleTypography.CaptionEmphasized.copy(
-                            color = if (isServiceRunning) AppleSwipeReview else textSecondary
-                        )
+                        text = "UPI Note Logger",
+                        style = AppleTypography.LargeTitle.copy(color = textPrimary)
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(if (isServiceRunning) AppleSwipeReview else textTertiary)
+                        )
+                        Spacer(modifier = Modifier.width(AppleSpacing.xxs))
+                        Text(
+                            text = if (isServiceRunning) "Capture Overlay Active" else "Local-Only Financial Utility",
+                            style = AppleTypography.CaptionEmphasized.copy(
+                                color = if (isServiceRunning) AppleSwipeReview else textSecondary
+                            )
+                        )
+                    }
                 }
             }
 
@@ -352,6 +360,72 @@ fun HomeScreen(
                         },
                         style = AppleTypography.Body.copy(color = textSecondary)
                     )
+
+                    Spacer(modifier = Modifier.height(AppleSpacing.sm))
+
+                    // Mode Flow Showcase Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(AppleRadius.card))
+                            .background(if (darkTheme) Color(0x14FFFFFF) else Color(0x08000000))
+                            .padding(vertical = AppleSpacing.sm, horizontal = AppleSpacing.xs),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            ModeIcon(mode = AppVisualMode.SCREEN_A, size = 40.dp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Screen A",
+                                style = AppleTypography.CaptionEmphasized.copy(color = textPrimary)
+                            )
+                            Text(
+                                text = "Payment ₹",
+                                style = AppleTypography.Caption2.copy(color = textSecondary)
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = textTertiary,
+                            modifier = Modifier.size(16.dp)
+                        )
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            ModeIcon(mode = AppVisualMode.SCREEN_B, size = 40.dp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Screen B",
+                                style = AppleTypography.CaptionEmphasized.copy(color = textPrimary)
+                            )
+                            Text(
+                                text = "Note / Remark",
+                                style = AppleTypography.Caption2.copy(color = textSecondary)
+                            )
+                        }
+
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = textTertiary,
+                            modifier = Modifier.size(16.dp)
+                        )
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            ModeIcon(mode = AppVisualMode.COMBINED, size = 40.dp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Merged",
+                                style = AppleTypography.CaptionEmphasized.copy(color = AppleSwipeReview)
+                            )
+                            Text(
+                                text = "Complete",
+                                style = AppleTypography.Caption2.copy(color = textSecondary)
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(AppleSpacing.md))
 

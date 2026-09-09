@@ -1,0 +1,60 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Squircle Background Shadow -->
+    <path
+        android:fillColor="#0A000000"
+        android:pathData="M24,10 L84,10 A16,16 0 0 1 100,26 L100,86 A16,16 0 0 1 84,102 L24,102 A16,16 0 0 1 8,86 L8,26 A16,16 0 0 1 24,10 Z" />
+
+    <!-- Main White Squircle Container -->
+    <path
+        android:fillColor="#FAFAFC"
+        android:strokeColor="#E8EAED"
+        android:strokeWidth="1"
+        android:pathData="M24,8 L84,8 A16,16 0 0 1 100,24 L100,84 A16,16 0 0 1 84,100 L24,100 A16,16 0 0 1 8,84 L8,24 A16,16 0 0 1 24,8 Z" />
+
+    <!-- Screen B: Note / Remarks Document (Warm Amber/Tan with Folded Corner) -->
+    <!-- Card Shadow -->
+    <path
+        android:fillColor="#202D1D09"
+        android:pathData="M30,24 L68,24 L86,42 L86,80 A8,8 0 0 1 78,88 L30,88 A8,8 0 0 1 22,80 L22,32 A8,8 0 0 1 30,24 Z" />
+
+    <!-- Card Main Body -->
+    <path
+        android:fillColor="#E8B888"
+        android:pathData="M30,22 L68,22 L86,40 L86,78 A8,8 0 0 1 78,86 L30,86 A8,8 0 0 1 22,78 L22,30 A8,8 0 0 1 30,22 Z" />
+
+    <!-- Folded Corner Flap -->
+    <path
+        android:fillColor="#BA8352"
+        android:pathData="M68,22 L68,36 A4,4 0 0 0 72,40 L86,40 Z" />
+
+    <!-- Note / Remark Title Header Bar -->
+    <path
+        android:fillColor="#714B27"
+        android:pathData="M32,34 L58,34 A3,3 0 0 1 61,37 A3,3 0 0 1 58,40 L32,40 A3,3 0 0 1 29,37 A3,3 0 0 1 32,34 Z" />
+
+    <!-- Note Lines representing extracted text remarks -->
+    <path
+        android:fillColor="#714B27"
+        android:pathData="M32,48 L76,48 A3,3 0 0 1 79,51 A3,3 0 0 1 76,54 L32,54 A3,3 0 0 1 29,51 A3,3 0 0 1 32,48 Z" />
+    <path
+        android:fillColor="#714B27"
+        android:pathData="M32,58 L72,58 A3,3 0 0 1 75,61 A3,3 0 0 1 72,64 L32,64 A3,3 0 0 1 29,61 A3,3 0 0 1 32,58 Z" />
+    <path
+        android:fillColor="#714B27"
+        android:pathData="M32,68 L54,68 A3,3 0 0 1 57,71 A3,3 0 0 1 54,74 L32,74 A3,3 0 0 1 29,71 A3,3 0 0 1 32,68 Z" />
+
+    <!-- Mode 'B' Pill Badge in Bottom Right -->
+    <path
+        android:fillColor="#D97706"
+        android:pathData="M70,70 L87,70 A5,5 0 0 1 92,75 L92,85 A5,5 0 0 1 87,90 L70,90 A5,5 0 0 1 65,85 L65,75 A5,5 0 0 1 70,70 Z" />
+    <!-- Letter 'B' inside Badge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M73,74 L79,74 C81.5,74 83,75 83,76.8 C83,78 82,78.8 81,79.2 C82.5,79.6 83.5,80.6 83.5,82.2 C83.5,84 81.8,85 79,85 L73,85 Z M75.5,76 L75.5,78.5 L78.5,78.5 C79.8,78.5 80.5,78 80.5,77.2 C80.5,76.4 79.8,76 78.5,76 Z M75.5,80.5 L75.5,83 L79,83 C80.4,83 81,82.5 81,81.7 C81,80.9 80.4,80.5 79,80.5 Z" />
+
+</vector>

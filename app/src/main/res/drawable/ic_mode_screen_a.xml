@@ -1,0 +1,84 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Squircle Background Shadow -->
+    <path
+        android:fillColor="#0A000000"
+        android:pathData="M24,10 L84,10 A16,16 0 0 1 100,26 L100,86 A16,16 0 0 1 84,102 L24,102 A16,16 0 0 1 8,86 L8,26 A16,16 0 0 1 24,10 Z" />
+
+    <!-- Main White Squircle Container -->
+    <path
+        android:fillColor="#FAFAFC"
+        android:strokeColor="#E8EAED"
+        android:strokeWidth="1"
+        android:pathData="M24,8 L84,8 A16,16 0 0 1 100,24 L100,84 A16,16 0 0 1 84,100 L24,100 A16,16 0 0 1 8,84 L8,24 A16,16 0 0 1 24,8 Z" />
+
+    <!-- Screen A: Payment Receipt Card (Soft Lavender/Periwinkle) -->
+    <!-- Card Shadow -->
+    <path
+        android:fillColor="#151E293B"
+        android:pathData="M28,24 L80,24 A8,8 0 0 1 88,32 L88,80 A8,8 0 0 1 80,88 L28,88 A8,8 0 0 1 20,80 L20,32 A8,8 0 0 1 28,24 Z" />
+
+    <!-- Card Body -->
+    <path
+        android:fillColor="#DCE3F6"
+        android:strokeColor="#C5D0F0"
+        android:strokeWidth="1"
+        android:pathData="M28,22 L80,22 A8,8 0 0 1 88,30 L88,78 A8,8 0 0 1 80,86 L28,86 A8,8 0 0 1 20,78 L20,30 A8,8 0 0 1 28,22 Z" />
+
+    <!-- Rupee Symbol '₹' -->
+    <!-- Top Bar -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M30,35 L50,35 A1.5,1.5 0 0 1 50,38 L30,38 A1.5,1.5 0 0 1 30,35 Z" />
+    <!-- Second Bar -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M30,41 L47,41 A1.5,1.5 0 0 1 47,44 L30,44 A1.5,1.5 0 0 1 30,41 Z" />
+    <!-- Loop & Leg -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M38,35 C46,35 46,49 37,50 L47,63" />
+
+    <!-- Transfer Arrow '->' -->
+    <!-- Stem -->
+    <path
+        android:strokeColor="#2563EB"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M56,43 L72,43" />
+    <!-- Head -->
+    <path
+        android:fillColor="#2563EB"
+        android:strokeColor="#2563EB"
+        android:strokeWidth="1"
+        android:strokeLineJoin="round"
+        android:pathData="M68,37 L77,43 L68,49 Z" />
+
+    <!-- Horizontal Transaction Details Lines -->
+    <path
+        android:fillColor="#8F9FB8"
+        android:pathData="M30,68 L70,68 A3,3 0 0 1 73,71 A3,3 0 0 1 70,74 L30,74 A3,3 0 0 1 27,71 A3,3 0 0 1 30,68 Z" />
+    <path
+        android:fillColor="#A5B3CA"
+        android:pathData="M30,77 L56,77 A2.5,2.5 0 0 1 58.5,79.5 A2.5,2.5 0 0 1 56,82 L30,82 A2.5,2.5 0 0 1 27.5,79.5 A2.5,2.5 0 0 1 30,77 Z" />
+
+    <!-- Mode 'A' Pill Badge in Bottom Right -->
+    <path
+        android:fillColor="#2563EB"
+        android:pathData="M70,70 L87,70 A5,5 0 0 1 92,75 L92,85 A5,5 0 0 1 87,90 L70,90 A5,5 0 0 1 65,85 L65,75 A5,5 0 0 1 70,70 Z" />
+    <!-- Letter 'A' inside Badge -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M73,85 L78.5,74 L84,85 M75,81 L82,81" />
+
+</vector>

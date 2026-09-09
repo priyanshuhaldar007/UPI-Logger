@@ -98,4 +98,12 @@ object AppleTypography {
         lineHeight = 16.sp,
         letterSpacing = 0.sp
     )
+
+    val Caption2 = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Normal,
+        fontSize = 11.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.sp
+    )
 }

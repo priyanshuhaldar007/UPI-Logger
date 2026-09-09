@@ -16,7 +16,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -27,11 +26,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -46,6 +49,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -82,6 +87,8 @@ import com.example.ui.theme.AppleCardBorder
 import com.example.ui.theme.AppleDarkCardBorder
 import com.example.ui.theme.AppleRadius
 import com.example.ui.theme.AppleSpacing
+import com.example.ui.components.AppVisualMode
+import com.example.ui.components.ModeIcon
 import com.example.ui.theme.AppleStatusMergedBg
 import com.example.ui.theme.AppleStatusMergedFg
 import com.example.ui.theme.AppleStatusWaitingBg
@@ -90,7 +97,16 @@ import com.example.ui.theme.AppleSwipeReview
 import com.example.ui.theme.AppleTypography
 import com.example.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
+import java.text.DateFormatSymbols
+import java.util.Calendar
+import java.util.Locale
 import kotlin.math.roundToInt
+
+data class MonthFilter(
+    val year: Int,
+    val monthIndex: Int,
+    val displayName: String
+)
 
 @Composable
 fun ExportScreen(
@@ -111,12 +127,62 @@ fun ExportScreen(
     var onlyReviewed by remember { mutableStateOf(false) }
     var isExporting by remember { mutableStateOf(false) }
 
+    // Month filter state
+    val availableMonths = remember(allTransactions) {
+        val cal = Calendar.getInstance()
+        val monthNames = DateFormatSymbols(Locale.US).shortMonths
+        allTransactions.map { entry ->
+            cal.timeInMillis = entry.createdAt
+            val y = cal.get(Calendar.YEAR)
+            val m = cal.get(Calendar.MONTH)
+            MonthFilter(y, m, "${monthNames[m]} $y")
+        }.distinctBy { "${it.year}-${it.monthIndex}" }
+            .sortedWith(compareByDescending<MonthFilter> { it.year }.thenByDescending { it.monthIndex })
+    }
+    var selectedMonth by remember { mutableStateOf<MonthFilter?>(null) }
+    var monthDropdownExpanded by remember { mutableStateOf(false) }
+
+    // Blank notes filter state
+    var showBlankNotesOnly by remember { mutableStateOf(false) }
+
+    val (monthStart, monthEnd) = remember(selectedMonth) {
+        val currentMonth = selectedMonth
+        if (currentMonth != null) {
+            val cal = Calendar.getInstance().apply {
+                set(Calendar.YEAR, currentMonth.year)
+                set(Calendar.MONTH, currentMonth.monthIndex)
+                set(Calendar.DAY_OF_MONTH, 1)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val start = cal.timeInMillis
+            val maxDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+            cal.set(Calendar.DAY_OF_MONTH, maxDay)
+            cal.set(Calendar.HOUR_OF_DAY, 23)
+            cal.set(Calendar.MINUTE, 59)
+            cal.set(Calendar.SECOND, 59)
+            cal.set(Calendar.MILLISECOND, 999)
+            val end = cal.timeInMillis
+            Pair(start, end)
+        } else {
+            Pair(0L, Long.MAX_VALUE)
+        }
+    }
+
     // QA Table row selection for inline modal correction
     var selectedEntryForEdit by remember { mutableStateOf<TransactionEntry?>(null) }
     var selectedImageForViewer by remember { mutableStateOf<Triple<TransactionEntry, String, String>?>(null) }
 
-    val exportEntries = remember(allTransactions, onlyReviewed) {
-        if (onlyReviewed) allTransactions.filter { it.isReviewed } else allTransactions
+    val exportEntries = remember(allTransactions, onlyReviewed, selectedMonth, showBlankNotesOnly) {
+        allTransactions.filter { entry ->
+            val matchesReviewed = !onlyReviewed || entry.isReviewed
+            val matchesMonth = selectedMonth == null || (entry.createdAt in monthStart..monthEnd)
+            val matchesBlankNotes = !showBlankNotesOnly || entry.note.isBlank()
+
+            matchesReviewed && matchesMonth && matchesBlankNotes
+        }
     }
 
     val blankNotesCount = remember(exportEntries) { exportEntries.count { it.note.isBlank() } }
@@ -126,6 +192,8 @@ fun ExportScreen(
 
     val cardBorder = if (darkTheme) AppleDarkCardBorder else AppleCardBorder
 
+    val tableContentWidth = 90.dp + 140.dp + 110.dp + 180.dp + 140.dp + 150.dp + 140.dp + 110.dp + 70.dp
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -133,9 +201,11 @@ fun ExportScreen(
             .offset { IntOffset(0, offsetY.value.roundToInt().coerceAtLeast(0)) }
     ) {
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 84.dp) // Leave space for sticky export action bar
         ) {
-            // Dedicated drag handle bar at the very top of the screen, outside and above the scrollable Column
+            // Dedicated drag handle bar at the very top of the screen, outside and above the table
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,16 +249,7 @@ fun ExportScreen(
                 )
             }
 
-            // Scrollable Content Column below the drag handle - only .verticalScroll, no competing drag gestures
-            val contentScrollState = rememberScrollState()
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(contentScrollState)
-                    .padding(bottom = 84.dp) // Leave space for sticky export action bar
-            ) {
-            // Header Bar
+            // Header Bar with Controls and QA Badges
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -204,15 +265,21 @@ fun ExportScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text(
-                                text = "Pre-Export QA Table",
-                                style = AppleTypography.LargeTitle.copy(color = MaterialTheme.colorScheme.onSurface)
-                            )
-                            Text(
-                                text = "Verify columns and tap any row to edit before CSV export",
-                                style = AppleTypography.Caption.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(AppleSpacing.sm)
+                        ) {
+                            ModeIcon(mode = AppVisualMode.EXPORT, size = 36.dp)
+                            Column {
+                                Text(
+                                    text = "Pre-Export QA Table",
+                                    style = AppleTypography.LargeTitle.copy(color = MaterialTheme.colorScheme.onSurface)
+                                )
+                                Text(
+                                    text = "Verify columns and tap any row to edit before CSV export",
+                                    style = AppleTypography.Caption.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                )
+                            }
                         }
 
                         if (onDismissRequest != null) {
@@ -228,21 +295,26 @@ fun ExportScreen(
 
                     Spacer(modifier = Modifier.height(AppleSpacing.xs))
 
-                    // Controls & QA Warning Indicators Row
+                    // Controls Row: Scope switch, Blank notes filter, Month dropdown
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(AppleSpacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Scope switch
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(AppleSpacing.xs),
-                            modifier = Modifier.clickable { onlyReviewed = !onlyReviewed }
+                            modifier = Modifier
+                                .clickable { onlyReviewed = !onlyReviewed }
+                                .testTag("scope_reviewed_switch_row")
                         ) {
                             Switch(
                                 checked = onlyReviewed,
                                 onCheckedChange = { onlyReviewed = it },
+                                modifier = Modifier.testTag("only_reviewed_switch"),
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
                                     checkedTrackColor = AppleSwipeReview,
@@ -256,92 +328,192 @@ fun ExportScreen(
                             )
                         }
 
-                        // QA badges
+                        // Blank notes filter switch
                         Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(AppleSpacing.xs),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier
+                                .clickable { showBlankNotesOnly = !showBlankNotesOnly }
+                                .testTag("blank_notes_switch_row")
                         ) {
-                            if (blankNotesCount > 0) {
-                                Surface(
-                                    shape = RoundedCornerShape(AppleRadius.chip),
-                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+                            Switch(
+                                checked = showBlankNotesOnly,
+                                onCheckedChange = { showBlankNotesOnly = it },
+                                modifier = Modifier.testTag("blank_notes_switch"),
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = MaterialTheme.colorScheme.error,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = if (darkTheme) Color(0xFF39393D) else Color(0xFFE5E5EA)
+                                )
+                            )
+                            Text(
+                                text = "Blank notes only",
+                                style = AppleTypography.CaptionEmphasized.copy(color = MaterialTheme.colorScheme.onSurface)
+                            )
+                        }
+
+                        // Month filter dropdown
+                        Box {
+                            Surface(
+                                shape = RoundedCornerShape(AppleRadius.chip),
+                                color = if (selectedMonth != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                border = BorderStroke(1.dp, if (selectedMonth != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier
+                                    .clickable { monthDropdownExpanded = true }
+                                    .testTag("month_filter_selector")
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Warning,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(12.dp),
-                                            tint = MaterialTheme.colorScheme.error
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarMonth,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = if (selectedMonth != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = selectedMonth?.displayName ?: "All Months",
+                                        style = AppleTypography.CaptionEmphasized.copy(
+                                            fontSize = 12.sp,
+                                            color = if (selectedMonth != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                         )
-                                        Text(
-                                            text = "$blankNotesCount blank notes",
-                                            style = AppleTypography.CaptionEmphasized.copy(
-                                                fontSize = 11.sp,
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        )
-                                    }
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
 
-                            if (unmergedCount > 0) {
-                                Surface(
-                                    shape = RoundedCornerShape(AppleRadius.chip),
-                                    color = AppleStatusWaitingBg,
-                                    border = BorderStroke(1.dp, cardBorder)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.HourglassEmpty,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(12.dp),
-                                            tint = AppleStatusWaitingFg
-                                        )
+                            DropdownMenu(
+                                expanded = monthDropdownExpanded,
+                                onDismissRequest = { monthDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
                                         Text(
-                                            text = "$unmergedCount unmerged",
-                                            style = AppleTypography.CaptionEmphasized.copy(
-                                                fontSize = 11.sp,
-                                                color = AppleStatusWaitingFg
-                                            )
+                                            text = "All Months",
+                                            fontWeight = if (selectedMonth == null) FontWeight.Bold else FontWeight.Normal
                                         )
+                                    },
+                                    onClick = {
+                                        selectedMonth = null
+                                        monthDropdownExpanded = false
                                     }
+                                )
+                                availableMonths.forEach { month ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = month.displayName,
+                                                fontWeight = if (selectedMonth == month) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedMonth = month
+                                            monthDropdownExpanded = false
+                                        }
+                                    )
                                 }
                             }
+                        }
+                    }
 
-                            if (blankNotesCount == 0 && unmergedCount == 0 && exportEntries.isNotEmpty()) {
-                                Surface(
-                                    shape = RoundedCornerShape(AppleRadius.chip),
-                                    color = AppleStatusMergedBg,
-                                    border = BorderStroke(1.dp, cardBorder)
+                    Spacer(modifier = Modifier.height(AppleSpacing.xs))
+
+                    // QA Warning Badges Row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(AppleSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (blankNotesCount > 0) {
+                            Surface(
+                                shape = RoundedCornerShape(AppleRadius.chip),
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(12.dp),
-                                            tint = AppleStatusMergedFg
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(12.dp),
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                    Text(
+                                        text = "$blankNotesCount blank notes",
+                                        style = AppleTypography.CaptionEmphasized.copy(
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.error
                                         )
-                                        Text(
-                                            text = "All Data Clean",
-                                            style = AppleTypography.CaptionEmphasized.copy(
-                                                fontSize = 11.sp,
-                                                color = AppleStatusMergedFg
-                                            )
+                                    )
+                                }
+                            }
+                        }
+
+                        if (unmergedCount > 0) {
+                            Surface(
+                                shape = RoundedCornerShape(AppleRadius.chip),
+                                color = AppleStatusWaitingBg,
+                                border = BorderStroke(1.dp, cardBorder)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.HourglassEmpty,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(12.dp),
+                                        tint = AppleStatusWaitingFg
+                                    )
+                                    Text(
+                                        text = "$unmergedCount unmerged",
+                                        style = AppleTypography.CaptionEmphasized.copy(
+                                            fontSize = 11.sp,
+                                            color = AppleStatusWaitingFg
                                         )
-                                    }
+                                    )
+                                }
+                            }
+                        }
+
+                        if (blankNotesCount == 0 && unmergedCount == 0 && exportEntries.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(AppleRadius.chip),
+                                color = AppleStatusMergedBg,
+                                border = BorderStroke(1.dp, cardBorder)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(12.dp),
+                                        tint = AppleStatusMergedFg
+                                    )
+                                    Text(
+                                        text = "All Data Clean",
+                                        style = AppleTypography.CaptionEmphasized.copy(
+                                            fontSize = 11.sp,
+                                            color = AppleStatusMergedFg
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -352,7 +524,8 @@ fun ExportScreen(
             if (exportEntries.isEmpty()) {
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
+                        .fillMaxWidth()
                         .padding(AppleSpacing.xl),
                     contentAlignment = Alignment.Center
                 ) {
@@ -366,218 +539,232 @@ fun ExportScreen(
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
+                        val emptyTitle = when {
+                            showBlankNotesOnly && selectedMonth != null -> "No blank note entries in ${selectedMonth?.displayName}"
+                            showBlankNotesOnly -> "No blank note entries found"
+                            selectedMonth != null -> "No entries for ${selectedMonth?.displayName}"
+                            onlyReviewed -> "No verified entries yet"
+                            else -> "No transactions recorded yet"
+                        }
+                        val emptySubtitle = when {
+                            showBlankNotesOnly || selectedMonth != null || onlyReviewed -> "Try adjusting the active filters above."
+                            else -> "Capture Screen A and Screen B receipts to populate records."
+                        }
                         Text(
-                            text = if (onlyReviewed) "No verified entries yet" else "No transactions recorded yet",
+                            text = emptyTitle,
                             style = AppleTypography.Subtitle.copy(color = MaterialTheme.colorScheme.onSurface)
                         )
                         Text(
-                            text = if (onlyReviewed) "Verify transactions in the Review screen or toggle 'Verified Only' off above." else "Capture Screen A and Screen B receipts to populate records.",
+                            text = emptySubtitle,
                             style = AppleTypography.Caption.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
-                        Spacer(modifier = Modifier.height(AppleSpacing.xs))
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.insertSamplePair(context)
-                                Toast.makeText(context, "Added sample test pair", Toast.LENGTH_SHORT).show()
-                            },
-                            shape = RoundedCornerShape(AppleRadius.chip)
-                        ) {
-                            Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(AppleSpacing.xs))
-                            Text("Generate Sample Data")
+                        if (allTransactions.isEmpty()) {
+                            Spacer(modifier = Modifier.height(AppleSpacing.xs))
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.insertSamplePair(context)
+                                    Toast.makeText(context, "Added sample test pair", Toast.LENGTH_SHORT).show()
+                                },
+                                shape = RoundedCornerShape(AppleRadius.chip)
+                            ) {
+                                Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(AppleSpacing.xs))
+                                Text("Generate Sample Data")
+                            }
                         }
                     }
                 }
             } else {
-                // QA Table Container with horizontal & vertical scroll
+                // QA Table Container with horizontal scroll and independent vertical LazyColumn
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
+                        .fillMaxWidth()
                         .padding(AppleSpacing.sm)
                         .clip(RoundedCornerShape(AppleRadius.card))
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(AppleRadius.card))
                         .background(MaterialTheme.colorScheme.surface)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxHeight()
                             .horizontalScroll(tableScrollState)
                     ) {
-                        Column(modifier = Modifier.width(IntrinsicSize.Max)) {
-                            // Table Header Row
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.fillMaxWidth()
+                        // a. Fixed Table Header Row (does not scroll vertically)
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.width(tableContentWidth)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .width(tableContentWidth)
+                                    .padding(horizontal = AppleSpacing.sm, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = AppleSpacing.sm, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    TableCell(text = "STATUS", width = 90.dp, isHeader = true)
-                                    TableCell(text = "DATE / TIME", width = 140.dp, isHeader = true)
-                                    TableCell(text = "AMOUNT (₹)", width = 110.dp, isHeader = true)
-                                    TableCell(text = "NOTE / REMARK", width = 180.dp, isHeader = true)
-                                    TableCell(text = "PAYEE", width = 140.dp, isHeader = true)
-                                    TableCell(text = "UPI VPA", width = 150.dp, isHeader = true)
-                                    TableCell(text = "UPI REF ID", width = 140.dp, isHeader = true)
-                                    TableCell(text = "METHOD", width = 110.dp, isHeader = true)
-                                    TableCell(text = "ACTION", width = 70.dp, isHeader = true)
-                                }
+                                TableCell(text = "STATUS", width = 90.dp, isHeader = true)
+                                TableCell(text = "DATE / TIME", width = 140.dp, isHeader = true)
+                                TableCell(text = "AMOUNT (₹)", width = 110.dp, isHeader = true)
+                                TableCell(text = "NOTE / REMARK", width = 180.dp, isHeader = true)
+                                TableCell(text = "PAYEE", width = 140.dp, isHeader = true)
+                                TableCell(text = "UPI VPA", width = 150.dp, isHeader = true)
+                                TableCell(text = "UPI REF ID", width = 140.dp, isHeader = true)
+                                TableCell(text = "METHOD", width = 110.dp, isHeader = true)
+                                TableCell(text = "ACTION", width = 70.dp, isHeader = true)
                             }
+                        }
 
-                            // Table Data Rows
-                            Column(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                exportEntries.forEach { entry ->
-                                    val hasBlankNote = entry.note.isBlank()
-                                    val isWaiting = !entry.isMerged
+                        // b. Virtualized Table Data Rows (scrolls vertically independently)
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .width(tableContentWidth)
+                        ) {
+                            items(exportEntries, key = { it.id }) { entry ->
+                                val hasBlankNote = entry.note.isBlank()
+                                val isWaiting = !entry.isMerged
 
-                                    val rowBg = when {
-                                        hasBlankNote -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.08f)
-                                        isWaiting -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                                        else -> Color.Transparent
-                                    }
+                                val rowBg = when {
+                                    hasBlankNote -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.08f)
+                                    isWaiting -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                                    else -> Color.Transparent
+                                }
 
-                                    Surface(
-                                        color = rowBg,
+                                Surface(
+                                    color = rowBg,
+                                    modifier = Modifier
+                                        .width(tableContentWidth)
+                                        .clickable { selectedEntryForEdit = entry }
+                                        .testTag("qa_table_row_${entry.id}")
+                                ) {
+                                    Row(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { selectedEntryForEdit = entry }
-                                            .testTag("qa_table_row_${entry.id}")
+                                            .width(tableContentWidth)
+                                            .border(
+                                                BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                            )
+                                            .padding(horizontal = AppleSpacing.sm, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .border(
-                                                    BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                                )
-                                                .padding(horizontal = AppleSpacing.sm, vertical = 10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                        // Merge Status Cell
+                                        Box(
+                                            modifier = Modifier.width(90.dp),
+                                            contentAlignment = Alignment.CenterStart
                                         ) {
-                                            // Merge Status Cell
-                                            Box(
-                                                modifier = Modifier.width(90.dp),
-                                                contentAlignment = Alignment.CenterStart
-                                            ) {
-                                                if (entry.isMerged) {
-                                                    Surface(
-                                                        shape = RoundedCornerShape(AppleRadius.badge),
-                                                        color = AppleStatusMergedBg
-                                                    ) {
-                                                        Text(
-                                                            text = "MERGED",
-                                                            style = AppleTypography.CaptionEmphasized.copy(
-                                                                color = AppleStatusMergedFg,
-                                                                fontSize = 10.sp
-                                                            ),
-                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-                                                } else {
-                                                    Surface(
-                                                        shape = RoundedCornerShape(AppleRadius.badge),
-                                                        color = AppleStatusWaitingBg
-                                                    ) {
-                                                        Text(
-                                                            text = "WAITING",
-                                                            style = AppleTypography.CaptionEmphasized.copy(
-                                                                color = AppleStatusWaitingFg,
-                                                                fontSize = 10.sp
-                                                            ),
-                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-
-                                            // Date
-                                            TableCell(
-                                                text = if (entry.date.isNotEmpty()) entry.date else "—",
-                                                width = 140.dp
-                                            )
-
-                                            // Amount
-                                            TableCell(
-                                                text = if (entry.amount.isNotEmpty()) "₹${entry.amount}" else "—",
-                                                width = 110.dp,
-                                                isEmphasized = true
-                                            )
-
-                                            // Note (with blank warning if missing)
-                                            Box(
-                                                modifier = Modifier.width(180.dp),
-                                                contentAlignment = Alignment.CenterStart
-                                            ) {
-                                                if (entry.note.isNotBlank()) {
-                                                    Text(
-                                                        text = entry.note,
-                                                        style = AppleTypography.CaptionEmphasized.copy(color = MaterialTheme.colorScheme.onSurface),
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                } else {
-                                                    Surface(
-                                                        shape = RoundedCornerShape(AppleRadius.badge),
-                                                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                                                    ) {
-                                                        Text(
-                                                            text = "[Blank Note]",
-                                                            style = AppleTypography.CaptionEmphasized.copy(
-                                                                color = MaterialTheme.colorScheme.error,
-                                                                fontSize = 11.sp
-                                                            ),
-                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-
-                                            // Payee
-                                            TableCell(
-                                                text = if (entry.payee.isNotEmpty()) entry.payee else "—",
-                                                width = 140.dp
-                                            )
-
-                                            // VPA
-                                            TableCell(
-                                                text = if (entry.vpa.isNotEmpty()) entry.vpa else "—",
-                                                width = 150.dp,
-                                                isSecondary = true
-                                            )
-
-                                            // UPI Ref ID
-                                            TableCell(
-                                                text = if (entry.referenceNumber.isNotEmpty()) entry.referenceNumber else "—",
-                                                width = 140.dp,
-                                                isSecondary = true
-                                            )
-
-                                            // Payment Method
-                                            TableCell(
-                                                text = if (entry.paymentMethod.isNotEmpty()) entry.paymentMethod else "UPI",
-                                                width = 110.dp,
-                                                isSecondary = true
-                                            )
-
-                                            // Edit Button
-                                            Box(
-                                                modifier = Modifier.width(70.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                IconButton(
-                                                    onClick = { selectedEntryForEdit = entry },
-                                                    modifier = Modifier.size(28.dp)
+                                            if (entry.isMerged) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(AppleRadius.badge),
+                                                    color = AppleStatusMergedBg
                                                 ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Edit,
-                                                        contentDescription = "Edit",
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(16.dp)
+                                                    Text(
+                                                        text = "MERGED",
+                                                        style = AppleTypography.CaptionEmphasized.copy(
+                                                            color = AppleStatusMergedFg,
+                                                            fontSize = 10.sp
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                                     )
                                                 }
+                                            } else {
+                                                Surface(
+                                                    shape = RoundedCornerShape(AppleRadius.badge),
+                                                    color = AppleStatusWaitingBg
+                                                ) {
+                                                    Text(
+                                                        text = "WAITING",
+                                                        style = AppleTypography.CaptionEmphasized.copy(
+                                                            color = AppleStatusWaitingFg,
+                                                            fontSize = 10.sp
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Date
+                                        TableCell(
+                                            text = if (entry.date.isNotEmpty()) entry.date else "—",
+                                            width = 140.dp
+                                        )
+
+                                        // Amount
+                                        TableCell(
+                                            text = if (entry.amount.isNotEmpty()) "₹${entry.amount}" else "—",
+                                            width = 110.dp,
+                                            isEmphasized = true
+                                        )
+
+                                        // Note (with blank warning if missing)
+                                        Box(
+                                            modifier = Modifier.width(180.dp),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            if (entry.note.isNotBlank()) {
+                                                Text(
+                                                    text = entry.note,
+                                                    style = AppleTypography.CaptionEmphasized.copy(color = MaterialTheme.colorScheme.onSurface),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            } else {
+                                                Surface(
+                                                    shape = RoundedCornerShape(AppleRadius.badge),
+                                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                                                ) {
+                                                    Text(
+                                                        text = "[Blank Note]",
+                                                        style = AppleTypography.CaptionEmphasized.copy(
+                                                            color = MaterialTheme.colorScheme.error,
+                                                            fontSize = 11.sp
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Payee
+                                        TableCell(
+                                            text = if (entry.payee.isNotEmpty()) entry.payee else "—",
+                                            width = 140.dp
+                                        )
+
+                                        // VPA
+                                        TableCell(
+                                            text = if (entry.vpa.isNotEmpty()) entry.vpa else "—",
+                                            width = 150.dp,
+                                            isSecondary = true
+                                        )
+
+                                        // UPI Ref ID
+                                        TableCell(
+                                            text = if (entry.referenceNumber.isNotEmpty()) entry.referenceNumber else "—",
+                                            width = 140.dp,
+                                            isSecondary = true
+                                        )
+
+                                        // Payment Method
+                                        TableCell(
+                                            text = if (entry.paymentMethod.isNotEmpty()) entry.paymentMethod else "UPI",
+                                            width = 110.dp,
+                                            isSecondary = true
+                                        )
+
+                                        // Edit Button
+                                        Box(
+                                            modifier = Modifier.width(70.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            IconButton(
+                                                onClick = { selectedEntryForEdit = entry },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = "Edit",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
                                             }
                                         }
                                     }
@@ -588,9 +775,8 @@ fun ExportScreen(
                 }
             }
         }
-    }
 
-    // Sticky Export Action Bottom Bar (Accessible directly from QA view)
+        // Sticky Export Action Bottom Bar (Accessible directly from QA view)
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)

@@ -127,6 +127,8 @@ import com.example.ui.theme.AppleDarkTextPrimary
 import com.example.ui.theme.AppleDarkTextSecondary
 import com.example.ui.theme.AppleDarkTextTertiary
 import com.example.ui.theme.AppleMotion
+import com.example.ui.components.AppVisualMode
+import com.example.ui.components.ModeIcon
 import com.example.ui.theme.AppleRadius
 import com.example.ui.theme.AppleSpacing
 import com.example.ui.theme.AppleStatusMergedBg
@@ -195,15 +197,21 @@ fun ReviewScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "Review & Edit",
-                            style = AppleTypography.Title.copy(color = textPrimary)
-                        )
-                        Text(
-                            text = "${transactions.size} entries",
-                            style = AppleTypography.Caption.copy(color = textSecondary)
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(AppleSpacing.sm)
+                    ) {
+                        ModeIcon(mode = AppVisualMode.REVIEW, size = 32.dp)
+                        Column {
+                            Text(
+                                text = "Review & Edit",
+                                style = AppleTypography.Title.copy(color = textPrimary)
+                            )
+                            Text(
+                                text = "${transactions.size} entries",
+                                style = AppleTypography.Caption.copy(color = textSecondary)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {

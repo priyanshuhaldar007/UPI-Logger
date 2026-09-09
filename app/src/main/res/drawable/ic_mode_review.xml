@@ -1,0 +1,83 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Squircle Background Shadow -->
+    <path
+        android:fillColor="#0A000000"
+        android:pathData="M24,10 L84,10 A16,16 0 0 1 100,26 L100,86 A16,16 0 0 1 84,102 L24,102 A16,16 0 0 1 8,86 L8,26 A16,16 0 0 1 24,10 Z" />
+
+    <!-- Main White Squircle Container -->
+    <path
+        android:fillColor="#FAFAFC"
+        android:strokeColor="#E8EAED"
+        android:strokeWidth="1"
+        android:pathData="M24,8 L84,8 A16,16 0 0 1 100,24 L100,84 A16,16 0 0 1 84,100 L24,100 A16,16 0 0 1 8,84 L8,24 A16,16 0 0 1 24,8 Z" />
+
+    <!-- Top Stacked Card (Screen A - Lavender with Rupee) -->
+    <path
+        android:fillColor="#DCE3F6"
+        android:strokeColor="#C5D0F0"
+        android:strokeWidth="1"
+        android:pathData="M24,20 L84,20 A8,8 0 0 1 92,28 L92,50 A8,8 0 0 1 84,58 L24,58 A8,8 0 0 1 16,50 L16,28 A8,8 0 0 1 24,20 Z" />
+
+    <!-- Rupee '₹' in Top Card -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M24,27 L38,27 A1,1 0 0 1 38,29 L24,29 A1,1 0 0 1 24,27 Z" />
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M24,31 L36,31 A1,1 0 0 1 36,33 L24,33 A1,1 0 0 1 24,31 Z" />
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M29,27 C34,27 34,37 28,38 L34,47" />
+
+    <!-- Amount / Detail Bar in Top Card -->
+    <path
+        android:fillColor="#9AA8C7"
+        android:pathData="M44,32 L78,32 A2.5,2.5 0 0 1 80.5,34.5 A2.5,2.5 0 0 1 78,37 L44,37 A2.5,2.5 0 0 1 41.5,34.5 A2.5,2.5 0 0 1 44,32 Z" />
+    <path
+        android:fillColor="#AAB7D2"
+        android:pathData="M44,41 L66,41 A2,2 0 0 1 68,43 A2,2 0 0 1 66,45 L44,45 A2,2 0 0 1 42,43 A2,2 0 0 1 44,41 Z" />
+
+    <!-- Bottom Stacked Card (Screen B - Amber with Note) -->
+    <path
+        android:fillColor="#E8B888"
+        android:strokeColor="#D79E69"
+        android:strokeWidth="1"
+        android:pathData="M24,52 L72,52 L86,66 L86,82 A8,8 0 0 1 78,90 L24,90 A8,8 0 0 1 16,82 L16,60 A8,8 0 0 1 24,52 Z" />
+    <!-- Folded Flap on Screen B -->
+    <path
+        android:fillColor="#BA8352"
+        android:pathData="M72,52 L72,63 A3,3 0 0 0 75,66 L86,66 Z" />
+
+    <!-- Note lines on Screen B -->
+    <path
+        android:fillColor="#714B27"
+        android:pathData="M26,67 L58,67 A2.5,2.5 0 0 1 60.5,69.5 A2.5,2.5 0 0 1 58,72 L26,72 A2.5,2.5 0 0 1 23.5,69.5 A2.5,2.5 0 0 1 26,67 Z" />
+    <path
+        android:fillColor="#714B27"
+        android:pathData="M26,77 L50,77 A2.5,2.5 0 0 1 52.5,79.5 A2.5,2.5 0 0 1 50,82 L26,82 A2.5,2.5 0 0 1 23.5,79.5 A2.5,2.5 0 0 1 26,77 Z" />
+
+    <!-- Verification Circular Badge (Apple Green with Checkmark) -->
+    <!-- Badge Shadow -->
+    <path
+        android:fillColor="#25047857"
+        android:pathData="M74,58 A15,15 0 1 1 74,88 A15,15 0 1 1 74,58 Z" />
+    <!-- Badge Main -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M74,56 A15,15 0 1 1 74,86 A15,15 0 1 1 74,56 Z" />
+    <!-- White Checkmark -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M66,71 L71,76 L82,65" />
+
+</vector>

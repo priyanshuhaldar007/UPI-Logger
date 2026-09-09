@@ -1,0 +1,94 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Squircle Background Shadow -->
+    <path
+        android:fillColor="#0A000000"
+        android:pathData="M24,10 L84,10 A16,16 0 0 1 100,26 L100,86 A16,16 0 0 1 84,102 L24,102 A16,16 0 0 1 8,86 L8,26 A16,16 0 0 1 24,10 Z" />
+
+    <!-- Main White Squircle Container -->
+    <path
+        android:fillColor="#FAFAFC"
+        android:strokeColor="#E8EAED"
+        android:strokeWidth="1"
+        android:pathData="M24,8 L84,8 A16,16 0 0 1 100,24 L100,84 A16,16 0 0 1 84,100 L24,100 A16,16 0 0 1 8,84 L8,24 A16,16 0 0 1 24,8 Z" />
+
+    <!-- Back Card (Screen A: Payment Receipt - Soft Lavender/Periwinkle) -->
+    <!-- Card Shadow -->
+    <path
+        android:fillColor="#151E293B"
+        android:pathData="M23,28 L69,23 A8,8 0 0 1 77,31 L81,74 A8,8 0 0 1 73,82 L27,87 A8,8 0 0 1 19,79 L15,36 A8,8 0 0 1 23,28 Z" />
+
+    <!-- Card Body -->
+    <path
+        android:fillColor="#DCE3F6"
+        android:pathData="M22,26 L68,21 A8,8 0 0 1 76,29 L80,72 A8,8 0 0 1 72,80 L26,85 A8,8 0 0 1 18,77 L14,34 A8,8 0 0 1 22,26 Z" />
+
+    <!-- Rupee Symbol '₹' on Back Card -->
+    <!-- Top Horizontal Bar -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M28,34 L45,32 A1.5,1.5 0 0 1 47,35 L28,37 A1.5,1.5 0 0 1 28,34 Z" />
+    <!-- Second Horizontal Bar -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M28,39 L43,37 A1.5,1.5 0 0 1 45,40 L28,42 A1.5,1.5 0 0 1 28,39 Z" />
+    <!-- Rupee Loop & Stem -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M35,34 C42,33 42,46 34,47 L43,58" />
+
+    <!-- Arrow '->' on Back Card -->
+    <!-- Arrow Stem -->
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="3.6"
+        android:strokeLineCap="round"
+        android:pathData="M52,40 L64,39" />
+    <!-- Arrow Head -->
+    <path
+        android:fillColor="#334155"
+        android:strokeColor="#334155"
+        android:strokeWidth="1"
+        android:strokeLineJoin="round"
+        android:pathData="M60,34 L68,38.5 L59,44 Z" />
+
+    <!-- Two Horizontal Pill Lines on Back Card -->
+    <path
+        android:fillColor="#9AA8C7"
+        android:pathData="M29,62 L55,59 A3,3 0 0 1 58,62 A3,3 0 0 1 55,65 L29,68 A3,3 0 0 1 26,65 A3,3 0 0 1 29,62 Z" />
+    <path
+        android:fillColor="#9AA8C7"
+        android:pathData="M30,71 L51,69 A3,3 0 0 1 54,72 A3,3 0 0 1 51,75 L30,77 A3,3 0 0 1 27,74 A3,3 0 0 1 30,71 Z" />
+
+    <!-- Front Card (Screen B: Note Document - Warm Amber/Tan with Folded Corner) -->
+    <!-- Front Card Shadow -->
+    <path
+        android:fillColor="#252D1D09"
+        android:pathData="M58,52 L78,52 L91,65 L91,89 A8,8 0 0 1 83,97 L58,97 A8,8 0 0 1 50,89 L50,60 A8,8 0 0 1 58,52 Z" />
+
+    <!-- Front Card Main Body -->
+    <path
+        android:fillColor="#E8B888"
+        android:pathData="M57,50 L77,50 L89,62 L89,87 A8,8 0 0 1 81,95 L57,95 A8,8 0 0 1 49,87 L49,58 A8,8 0 0 1 57,50 Z" />
+
+    <!-- Folded Corner Flap -->
+    <path
+        android:fillColor="#BA8352"
+        android:pathData="M77,50 L77,59 A3,3 0 0 0 80,62 L89,62 Z" />
+
+    <!-- Two Dark Brown Note Lines on Front Card -->
+    <path
+        android:fillColor="#714B27"
+        android:pathData="M57,69 L77,69 A3,3 0 0 1 80,72 A3,3 0 0 1 77,75 L57,75 A3,3 0 0 1 54,72 A3,3 0 0 1 57,69 Z" />
+    <path
+        android:fillColor="#714B27"
+        android:pathData="M57,79 L74,79 A3,3 0 0 1 77,82 A3,3 0 0 1 74,85 L57,85 A3,3 0 0 1 54,82 A3,3 0 0 1 57,79 Z" />
+
+</vector>
